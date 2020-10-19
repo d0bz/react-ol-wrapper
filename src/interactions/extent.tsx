@@ -1,7 +1,8 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map } from 'ol';
+import { Extent as OlExtent } from 'ol/interaction';
+import { Util } from '../util';
 import { MapView } from '../map';
 
 export class Extent extends React.Component<any, any> {
@@ -33,7 +34,7 @@ export class Extent extends React.Component<any, any> {
     componentDidMount() {
         let options = Util.getOptions(Object['assign'](this.options, this.props));
         console.log('options', options);
-        this.interaction = new ol.interaction['Extent'](options);
+        this.interaction = new OlExtent(options);
         this.context.mapComp.interactions.push(this.interaction);
 
         let olEvents = Util.getEvents(this.events, this.props);
@@ -46,7 +47,7 @@ export class Extent extends React.Component<any, any> {
         if (nextProps !== this.props) {
             this.context.mapComp.map.removeInteraction(this.interaction);
             let options = Util.getOptions(Object['assign'](this.options, nextProps));
-            this.interaction = new ol.interaction['Extent'](options);
+            this.interaction = new OlExtent(options);
             this.context.mapComp.map.addInteraction(this.interaction);
 
             let olEvents = Util.getEvents(this.events, this.props);
@@ -62,7 +63,7 @@ export class Extent extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 
 }

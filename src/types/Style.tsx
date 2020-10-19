@@ -1,4 +1,5 @@
-import * as ol from 'openlayers';
+import { Fill, Stroke, Circle, Style as OlStyle, Icon, Text } from 'ol/style';
+import { pointerMove } from 'ol/events/condition';
 
 /**
  * @component
@@ -17,119 +18,164 @@ import * as ol from 'openlayers';
  */
 export class Style {
 
-    fillColor: any = [0, 153, 255, 1];
-    strokeColor: any = [255, 255, 255, 0.75];
-    strokeWidth: any = 1.5;
-    circleRadius: any;
-    imageSrc: any;
-    imageAnchor: [number, number] = [0.5, 1];
-    opacity: number = 1;
-    scale: number = 1;
+	defaultStyle: any = new OlStyle({
+		fill: new Fill({ color: '' }),
+		stroke: new Stroke({ color: '', width: 1 })
+	});
 
-    constructor(properties?: any) {
-        if (properties) {
-            this.setFillColor(properties.fillColor);
-            this.setStrokeColor(properties.strokeColor);
-            this.setStrokeWidth(properties.strokeWidth);
-            this.setCircleRadius(properties.circleRadius);
-            this.setImageSrc(properties.imageSrc);
-            this.setOpacity(properties.opacity || this.opacity);
-            this.setScale(properties.scale || this.scale);
-            this.setImageAnchor(properties.imageAnchor || this.imageAnchor);
-        }
-    }
+	cachedStyle: any;
 
-    getFillColor(): any | null {
-        return this.fillColor;
-    }
+	fillColor: any = [0, 153, 255, 1];
+	strokeColor: any = [255, 255, 255, 0.75];
+	strokeWidth: any = 1.5;
+	circleRadius: any;
+	imageSrc: any;
+	imageAnchor: [number, number] = [0.5, 1];
+	imageSize: [number, number];
+	opacity: number = 1;
+	scale: number = 1;
+	text: string;
+	textSize: number = 10;
 
-    setFillColor(color: any): void {
-        this.fillColor = color;
-    }
+	constructor(properties?: any) {
+		if (properties) {
+			this.setFillColor(properties.fillColor);
+			this.setStrokeColor(properties.strokeColor);
+			this.setStrokeWidth(properties.strokeWidth);
+			this.setCircleRadius(properties.circleRadius);
+			this.setImageSrc(properties.imageSrc);
+			this.setImageSize(properties.imageSize);
+			this.setOpacity(properties.opacity || this.opacity);
+			this.setScale(properties.scale || this.scale);
+			this.setImageAnchor(properties.imageAnchor || this.imageAnchor);
+			this.setText(properties.text, properties.textSize);
+		}
+	}
 
-    getOpacity(): any | null {
-        return this.opacity;
-    }
+	getFillColor(): any | null {
+		return this.fillColor;
+	}
 
-    setOpacity(opacity: any): void {
-        this.opacity = opacity;
-    }
+	setFillColor(color: any): void {
+		this.fillColor = color;
+	}
 
-    setScale(scale: any): void {
-        this.scale = scale;
-    }
+	getOpacity(): any | null {
+		return this.opacity;
+	}
 
-    getStrokeColor(): any | null {
-        return this.strokeColor;
-    }
+	setOpacity(opacity: any): void {
+		this.opacity = opacity;
+	}
 
-    setStrokeColor(color: any): void {
-        this.strokeColor = color;
-    }
+	setScale(scale: any): void {
+		this.scale = scale;
+	}
 
-    getStrokeWidth(): any | null {
-        return this.strokeWidth;
-    }
+	getStrokeColor(): any | null {
+		return this.strokeColor;
+	}
 
-    setStrokeWidth(width: any): void {
-        this.strokeWidth = width;
-    }
+	setStrokeColor(color: any): void {
+		this.strokeColor = color;
+	}
 
-    getCircleRadius(): any | null {
-        return this.circleRadius;
-    }
+	getStrokeWidth(): any | null {
+		return this.strokeWidth;
+	}
 
-    setCircleRadius(radius: any): void {
-        this.circleRadius = radius;
-    }
+	setStrokeWidth(width: any): void {
+		this.strokeWidth = width;
+	}
 
-    getImageSrc(): any | null {
-        return this.imageSrc;
-    }
+	getCircleRadius(): any | null {
+		return this.circleRadius;
+	}
 
-    setImageSrc(src: any): void {
-        this.imageSrc = src;
-    }
+	setCircleRadius(radius: any): void {
+		this.circleRadius = radius;
+	}
 
-    getImageAnchor(): any | null {
-        return this.imageAnchor;
-    }
+	getImageSrc(): any | null {
+		return this.imageSrc;
+	}
 
-    setImageAnchor(anchor: any): void {
-        this.imageAnchor = anchor;
-    }
+	setImageSrc(src: any): void {
+		if (src) {
+			this.imageSrc = src.replace(/#/g, '%23');
+		}
+	}
 
-    getMapStyle(): ol.style.Style {
-        if (this.imageSrc) {
-            return new ol.style.Style({
-                image: new ol.style.Icon(/** @type {module:ol/style/Icon~Options} */ ({
-                    anchor: this.imageAnchor,
-                    anchorXUnits: 'fraction',
-                    anchorYUnits: 'fraction',
-                    src: this.imageSrc,
-                    opacity: this.opacity,
-                    scale: this.scale
-                }))
-            });
-        }
+	setImageSize(size: [number, number]): void {
+		if (size) {
+			this.imageSize = size;
+		}
+	}
 
-        if (this.circleRadius) {
-            return new ol.style.Style({
-                fill: new ol.style.Fill({ color: this.fillColor }),
-                stroke: new ol.style.Stroke({ color: this.strokeColor, width: this.strokeWidth }),
-                image: new ol.style.Circle({
-                    radius: this.circleRadius,
-                    fill: new ol.style.Fill({ color: this.fillColor }),
-                    stroke: new ol.style.Stroke({ color: this.strokeColor, width: this.strokeWidth })
-                })
-            });
-        }
+	getImageAnchor(): any | null {
+		return this.imageAnchor;
+	}
 
+	setImageAnchor(anchor: any): void {
+		this.imageAnchor = anchor;
+	}
 
-        return new ol.style.Style({
-            fill: new ol.style.Fill({ color: this.fillColor }),
-            stroke: new ol.style.Stroke({ color: this.strokeColor, width: this.fillColor })
-        });
+	setText(text: string, size: number): void {
+		this.text = text ? text.toString() : null;
+		if (size) {
+			this.textSize = size;
+		}
+	}
 
-    }
+	getMapStyle(): OlStyle {
+		if (this.cachedStyle) {
+			return this.cachedStyle;
+		}
+
+		if (this.imageSrc) {
+			this.defaultStyle.setImage(
+				new Icon(/** @type {module:ol/style/Icon~Options} */ ({
+					anchor: this.imageAnchor,
+					anchorXUnits: 'fraction',
+					anchorYUnits: 'fraction',
+					src: this.imageSrc,
+					size: this.imageSize,
+					opacity: this.opacity,
+					scale: this.scale
+				})));
+
+			this.cachedStyle = this.defaultStyle;
+			return this.defaultStyle;
+		} else if (this.circleRadius) {
+			this.defaultStyle.setImage(new Circle({
+				radius: this.circleRadius,
+				fill: new Fill({ color: this.fillColor }),
+				stroke: new Stroke({
+					color: this.strokeColor,
+					width: this.strokeWidth
+				})
+			}));
+		}
+
+		const stroke = this.defaultStyle.getStroke();
+		const fill = this.defaultStyle.getFill();
+
+		fill.setColor(this.fillColor);
+		stroke.setColor(this.strokeColor);
+		stroke.setWidth(this.strokeWidth);
+
+		if (this.text) {
+			this.defaultStyle.setText(
+				new Text({
+					font: `${this.textSize}px sans-serif`,
+					text: this.text,
+					fill: fill,
+					stroke: stroke
+				})
+			);
+		}
+
+		this.cachedStyle = this.defaultStyle;
+		return this.defaultStyle;
+	}
 }

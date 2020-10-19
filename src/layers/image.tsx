@@ -1,12 +1,14 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map } from 'ol';
+import { Image } from 'ol/layer';
+import { ImageStatic } from 'ol/source';
+import { Util } from '../util';
 import { MapView } from '../map';
 
 export class ImageLayer extends React.Component<any, any> {
 
-    layer: ol.layer.Image;
+    layer: Image;
 
     static propTypes = {
         /**
@@ -61,9 +63,22 @@ export class ImageLayer extends React.Component<any, any> {
     addLayer(props) {
         const self = this;
 
-        var imageSource = new ol.source.ImageStatic(props.properties);
+        var imageSource = new ImageStatic(props.properties);
 
-        self.layer = new ol.layer.Image({
+        let properties = {
+            maxResolution: undefined,
+            minResolution: undefined,
+        };
+        if (props.properties.maxScale) {
+            properties.maxResolution = Util.getResolutionForScale(props.properties.maxScale, this.context.mapComp.options.projection.getUnits());
+        }
+
+        if (props.properties.minScale) {
+            properties.minResolution = Util.getResolutionForScale(props.properties.minScale, this.context.mapComp.options.projection.getUnits());
+        }
+
+        self.layer = new Image({
+            ...properties,
             source: imageSource
         });
 
@@ -89,7 +104,7 @@ export class ImageLayer extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 
 }

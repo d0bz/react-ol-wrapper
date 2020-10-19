@@ -1,33 +1,51 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map, Observable, Feature as OlFeature } from 'ol';
+import { Fill, Stroke, Circle, Style } from 'ol/style';
+import { Polygon, Point, LineString, LinearRing, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection, GeometryType } from 'ol/geom';
+import Select from 'ol/interaction/Select';
+import Draw from 'ol/interaction/Draw';
+import Modify from 'ol/interaction/Modify';
+import Snap from 'ol/interaction/Snap';
+import DoubleClickZoom from 'ol/interaction/DoubleClickZoom';
+import { always, never, platformModifierKeyOnly, shiftKeyOnly, singleClick } from 'ol/events/condition';
+import { boundingExtent } from 'ol/extent';
+import { squaredDistance, closestOnCircle, closestOnSegment } from 'ol/coordinate';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
+import Collection from 'ol/Collection';
+import WKT from 'ol/format/WKT';
+import GeoJSON from 'ol/format/GeoJSON';
+import GML2 from 'ol/format/GML2';
+import GML3 from 'ol/format/GML3';
+import { transform } from 'ol/proj';
+import { Util } from '../util';
 import { MapView } from '../map';
 import * as jsts from 'jsts';
 import { Feature } from '../types/Feature';
 
 
-const drawStyle = new ol.style.Style({
-    stroke: new ol.style.Stroke({
+const drawStyle = new Style({
+    stroke: new Stroke({
         color: '#00ff03',
         width: 2
     }),
-    fill: new ol.style.Fill({
+    fill: new Fill({
         color: 'rgba(255,0,0,0)'
     }),
-    image: new ol.style.Circle({
-        fill: new ol.style.Fill({ color: 'rgba(0, 255, 0, 0.4)' }),
-        stroke: new ol.style.Stroke({ color: '#00ff03', width: 1.25 }),
+    image: new Circle({
+        fill: new Fill({ color: 'rgba(0, 255, 0, 0.4)' }),
+        stroke: new Stroke({ color: '#00ff03', width: 1.25 }),
         radius: 5
     })
 });
 
-const resultStyle = new ol.style.Style({
-    stroke: new ol.style.Stroke({
+const resultStyle = new Style({
+    stroke: new Stroke({
         color: '#f00',
         width: 4
     }),
-    fill: new ol.style.Fill({
+    fill: new Fill({
         color: 'rgba(255,0,0,0)'
     })
 });
@@ -38,21 +56,21 @@ export class Splice extends React.Component<any, any> {
     projection: string = "EPSG:3857";
     splicingFeature: Feature;
     lineFeature: Feature;
-    drawInteraction: ol.interaction.Draw;
-    snapInteraction: ol.interaction.Snap;
-    modifyInteraction: ol.interaction.Modify;
-    selectInteraction: ol.interaction.Select;
-    resultSource: ol.source.Vector;
-    resultLayer: ol.layer.Vector;
-    lineSource: ol.source.Vector;
-    lineLayer: ol.layer.Vector;
+    drawInteraction: Draw;
+    snapInteraction: Snap;
+    modifyInteraction: Modify;
+    selectInteraction: Select;
+    resultSource: VectorSource;
+    resultLayer: VectorLayer;
+    lineSource: VectorSource;
+    lineLayer: VectorLayer;
     wktWriter: jsts.io.WKTWriter;
     wktReader: jsts.io.WKTReader;
-    wktFormat: ol.format.WKT;
+    wktFormat: WKT;
     jtsParser: jsts.io.OL3Parser;
     gmlFormats: Map<string, any> = new Map<string, any>();
-    snapFeatures: ol.Collection<ol.Feature>;
-    geojsonFormat: ol.format.GeoJSON;
+    snapFeatures: Collection<OlFeature>;
+    geojsonFormat: GeoJSON;
 
 
     options: any = {};
@@ -61,21 +79,21 @@ export class Splice extends React.Component<any, any> {
 
     constructor(props) {
         super(props);
-        this.resultSource = new ol.source.Vector({ wrapX: false });
-        this.lineSource = new ol.source.Vector({ wrapX: false });
-        this.snapFeatures = new ol.Collection([]);
+        this.resultSource = new VectorSource({ wrapX: false });
+        this.lineSource = new VectorSource({ wrapX: false });
+        this.snapFeatures = new Collection([]);
 
-        this.geojsonFormat = new ol.format.GeoJSON();
+        this.geojsonFormat = new GeoJSON();
 
-        this.gmlFormats.set("1.0.0", new ol.format.GML2());
-        this.gmlFormats.set("1.1.0", new ol.format.GML3());
+        this.gmlFormats.set("1.0.0", new GML2());
+        this.gmlFormats.set("1.1.0", new GML3());
 
         this.jtsParser = new jsts.io.OL3Parser();
-        this.jtsParser.inject(ol.geom.Point, ol.geom.LineString, ol.geom.LinearRing, ol.geom.Polygon, ol.geom.MultiPoint, ol.geom.MultiLineString,
-            ol.geom.MultiPolygon, ol.geom.GeometryCollection);
+        this.jtsParser.inject(Point, LineString, LinearRing, Polygon, MultiPoint, MultiLineString,
+            MultiPolygon, GeometryCollection);
 
         this.wktWriter = new jsts.io.WKTWriter();
-        this.wktFormat = new ol.format.WKT();
+        this.wktFormat = new WKT();
     }
 
     render() {
@@ -84,12 +102,12 @@ export class Splice extends React.Component<any, any> {
 
     componentDidMount() {
         const self = this;
-        this.resultLayer = new ol.layer.Vector({
+        this.resultLayer = new VectorLayer({
             source: this.resultSource,
             style: resultStyle
         });
 
-        this.lineLayer = new ol.layer.Vector({
+        this.lineLayer = new VectorLayer({
             source: this.lineSource,
             style: drawStyle
         });
@@ -164,7 +182,7 @@ export class Splice extends React.Component<any, any> {
         });
 
         if (options.layers) {
-            this.selectInteraction = new ol.interaction.Select(options);
+            this.selectInteraction = new Select(options);
             this.selectInteraction.on("select", (e) => self.areaSelected(e));
             this.context.mapComp.map.addInteraction(this.selectInteraction);
         }
@@ -173,14 +191,14 @@ export class Splice extends React.Component<any, any> {
     mapOnClick(evt) {
         const { wfsLayerDescription } = this.props;
         const self = this;
-        const coordinate = evt.coordinate;
-        const extent = new ol.geom.Circle(coordinate, 1).getExtent(); // radius in meters
+        const coordinate = transform(evt.coordinate, this.projection, 'EPSG:4326');
+        const extent = Util.createExtentFromLonLat(coordinate[0], coordinate[1], 1);
 
         const requestNode = Util.buildWFSGetFeatureRequestElement({
             geometryPropertyName: wfsLayerDescription.geometryPropertyName,
             featureType: wfsLayerDescription.featureType,
             featureNS: wfsLayerDescription.featureNS,
-            srsName: self.context.mapComp.map.getView().getProjection().getCode(),
+            srsName: 'EPSG:4326',
             bbox: extent,
             cqlFilter: wfsLayerDescription.cqlFilter
         });
@@ -215,7 +233,7 @@ export class Splice extends React.Component<any, any> {
         this.context.mapComp.map.un('click', this.mapOnClick, this);
         this.context.mapComp.map.removeInteraction(this.drawInteraction);
 
-        this.drawInteraction = new ol.interaction.Draw({
+        this.drawInteraction = new Draw({
             source: this.lineSource,
             type: "LineString",
             style: drawStyle,
@@ -228,7 +246,7 @@ export class Splice extends React.Component<any, any> {
 
         let listenerKey;
         let lineString;
-        this.drawInteraction.on('drawstart', function (e: ol.interaction.Draw.Event) {
+        this.drawInteraction.on('drawstart', function (e: Draw.Event) {
             var feature = e.feature;
             lineString = feature.getGeometry();
             // finish the drawing when the linestring has 2 vertices
@@ -240,7 +258,7 @@ export class Splice extends React.Component<any, any> {
                     // check if last vertice is outside from base area
                     const lastVertice = vertices[vertices.length - 1];
 
-                    let geomA = self.jtsParser.read(new ol.geom.Point(lastVertice));
+                    let geomA = self.jtsParser.read(new Point(lastVertice));
                     let geomB = self.wktReader.read(self.splicingFeature.getGeometry());
                     let geomC = self.jtsParser.read(lineString);
 
@@ -253,7 +271,7 @@ export class Splice extends React.Component<any, any> {
 
                     const firstVertice = vertices[0];
 
-                    let geomA = self.jtsParser.read(new ol.geom.Point(firstVertice));
+                    let geomA = self.jtsParser.read(new Point(firstVertice));
                     let geomB = self.wktReader.read(self.splicingFeature.getGeometry());
 
                     // must start from outside
@@ -266,11 +284,11 @@ export class Splice extends React.Component<any, any> {
         });
 
         this.drawInteraction.on('drawend', function (e) {
-            ol.Observable.unByKey(listenerKey);
+            Observable.unByKey(listenerKey);
             document.removeEventListener('keydown', deleteLastPoint, false);
         });
 
-        this.snapInteraction = new ol.interaction.Snap({
+        this.snapInteraction = new Snap({
             features: this.snapFeatures,
             pixelTolerance: 20
         });
@@ -293,11 +311,11 @@ export class Splice extends React.Component<any, any> {
         self.lineFeature = new Feature(evt.feature, self.projection);
         this.context.mapComp.map.removeInteraction(this.drawInteraction);
 
-        this.modifyInteraction = new ol.interaction.Modify({
+        this.modifyInteraction = new Modify({
             source: this.lineSource,
             deleteCondition: function (event) {
-                return ol.events.condition.shiftKeyOnly(event) &&
-                    ol.events.condition.singleClick(event);
+                return shiftKeyOnly(event) &&
+                    singleClick(event);
             }
         });
 
@@ -320,11 +338,11 @@ export class Splice extends React.Component<any, any> {
         if (!this.lineFeature && feature) {
             this.context.mapComp.map.removeInteraction(this.drawInteraction);
 
-            this.modifyInteraction = new ol.interaction.Modify({
+            this.modifyInteraction = new Modify({
                 source: this.lineSource,
                 deleteCondition: function (event) {
-                    return ol.events.condition.shiftKeyOnly(event) &&
-                        ol.events.condition.singleClick(event);
+                    return shiftKeyOnly(event) &&
+                        singleClick(event);
                 }
             });
 
@@ -488,7 +506,7 @@ export class Splice extends React.Component<any, any> {
         var interactions = this.context.mapComp.map.getInteractions();
         for (var i = 0; i < interactions.getLength(); i++) {
             var interaction = interactions.item(i);
-            if (interaction instanceof ol.interaction.DoubleClickZoom) {
+            if (interaction instanceof DoubleClickZoom) {
                 interaction.setActive(active);
             }
         }
@@ -496,6 +514,6 @@ export class Splice extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

@@ -1,12 +1,15 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { MapBrowserEvent, Map } from 'ol';
+import { Fill, Stroke, Circle, Style } from 'ol/style';
+import Select from 'ol/interaction/Select';
+import { pointerMove } from 'ol/events/condition';
+import { Util } from '../util';
 import { MapView } from '../map';
 
 export class Highlight extends React.Component<any, any> {
 
-    interaction: ol.interaction.Select;
+    interaction: Select;
 
     options: any = {
         addCondition: undefined,
@@ -43,15 +46,15 @@ export class Highlight extends React.Component<any, any> {
             this.interaction = this.props.instance;
         } else {
             let options = Util.getOptions(Object['assign'](this.options, this.props));
-            options.condition = ol.events.condition.pointerMove;
-            this.interaction = new ol.interaction.Select(options);
+            options.condition = pointerMove;
+            this.interaction = new Select(options);
         }
 
         if (typeof this.props.active !== undefined) {
             this.interaction.setActive(this.props.active);
         }
 
-        this.interaction.on('select', function (evt: ol.interaction.Select.Event) {
+        this.interaction.on('select', function (evt: Select.Event) {
             if (evt.selected.length > 0) {
                 console.info('selected: ' + evt.selected[0].getId());
             }
@@ -86,8 +89,8 @@ export class Highlight extends React.Component<any, any> {
                     });
                 }
 
-                options.condition = ol.events.condition.pointerMove;
-                this.interaction = new ol.interaction.Select(options);
+                options.condition = pointerMove;
+                this.interaction = new Select(options);
             }
             this.context.mapComp.map.addInteraction(this.interaction);
 
@@ -106,7 +109,7 @@ export class Highlight extends React.Component<any, any> {
         }
     }
 
-    highlightFeature(evt: ol.MapBrowserEvent) {
+    highlightFeature(evt: MapBrowserEvent) {
         if (evt.dragging) return;
 
         var pixel = this.context.mapComp.map.getEventPixel(evt.originalEvent);
@@ -140,38 +143,38 @@ export class Highlight extends React.Component<any, any> {
             width: number = 3;
 
         style['LineString'] = [
-            new ol.style.Style({
-                stroke: new ol.style.Stroke({
+            new Style({
+                stroke: new Stroke({
                     color: white, width: width + 2
                 })
             }),
-            new ol.style.Style({
-                stroke: new ol.style.Stroke({
+            new Style({
+                stroke: new Stroke({
                     color: blue, width: width
                 })
             })
         ],
             style['Polygon'] = [
-                new ol.style.Style({
-                    fill: new ol.style.Fill({ color: [255, 255, 255, 0.5] })
+                new Style({
+                    fill: new Fill({ color: [255, 255, 255, 0.5] })
                 }),
-                new ol.style.Style({
-                    stroke: new ol.style.Stroke({
+                new Style({
+                    stroke: new Stroke({
                         color: white, width: 3.5
                     })
                 }),
-                new ol.style.Style({
-                    stroke: new ol.style.Stroke({
+                new Style({
+                    stroke: new Stroke({
                         color: blue, width: 2.5
                     })
                 })
             ],
             style['Point'] = [
-                new ol.style.Style({
-                    image: new ol.style.Circle({
+                new Style({
+                    image: new Circle({
                         radius: width * 2,
-                        fill: new ol.style.Fill({ color: blue }),
-                        stroke: new ol.style.Stroke({
+                        fill: new Fill({ color: blue }),
+                        stroke: new Stroke({
                             color: white, width: width / 2
                         })
                     })
@@ -183,7 +186,7 @@ export class Highlight extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 
 }

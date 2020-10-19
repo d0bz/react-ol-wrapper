@@ -15,8 +15,6 @@ var config = {
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.html'],
         alias: {
-            'phoenix-react-geomap-core': path.join(__dirname, 'src', 'index.ts'),
-            'openlayers': 'openlayers/dist/ol-debug.js',
             'jsts': 'jsts/dist/jsts.min.js'
         },
     },

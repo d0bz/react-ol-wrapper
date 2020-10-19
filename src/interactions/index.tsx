@@ -10,7 +10,7 @@ import {Extent} from './extent';
 import {Interactions} from './interactions';
 import {KeyboardPan} from './keyboard-pan';
 import {KeyboardZoom} from './keyboard-zoom';
-import {Modify} from './modify';
+import {ModifyComponent} from './modify';
 import {MouseWheelZoom} from './mouse-wheel-zoom';
 import {PinchRotate} from './pinch-rotate';
 import {PinchZoom} from './pinch-zoom';
@@ -32,7 +32,7 @@ let interaction = {
   Extent: Extent,
   KeyboardPan: KeyboardPan,
   KeyboardZoom: KeyboardZoom,
-  Modify: Modify,
+  Modify: ModifyComponent,
   MouseWheelZoom: MouseWheelZoom,
   PinchRotate: PinchRotate,
   PinchZoom: PinchZoom,

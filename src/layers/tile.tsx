@@ -1,11 +1,14 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
+import { Map } from 'ol';
+import { Tile as OlTile } from 'ol/layer';
+import TileGrid from 'ol/tilegrid/TileGrid';
+import { XYZ } from 'ol/source';
 import { Util } from '../util';
 
 export class Tile extends React.Component<any, any> {
 
-    layer: ol.layer.Tile;
+    layer: OlTile;
 
     properties: any = {
         source: undefined,
@@ -73,7 +76,16 @@ export class Tile extends React.Component<any, any> {
         const self = this;
 
         self.properties = self.tmsSourceDefinition(props.properties, this.context.mapComp.options.projection.getCode());
-        self.layer = new ol.layer.Tile(self.properties);
+
+        if (props.properties.maxScale) {
+            self.properties.maxResolution = Util.getResolutionForScale(props.properties.maxScale, this.context.mapComp.options.projection.getUnits());
+        }
+
+        if (props.properties.minScale) {
+            self.properties.minResolution = Util.getResolutionForScale(props.properties.minScale, this.context.mapComp.options.projection.getUnits());
+        }
+
+        self.layer = new OlTile(self.properties);
         self.context.mapComp.map.addLayer(self.layer);
 
         if (props.zIndex) {
@@ -96,11 +108,12 @@ export class Tile extends React.Component<any, any> {
         let xyzProperties = {
             projection: projection,
             url: layerProperties.url,
-            tileGrid: undefined
+            tileGrid: undefined,
+            attributions: layerProperties.attributions || null
         };
 
-        if(layerProperties.extent){
-            xyzProperties.tileGrid = new ol.tilegrid.TileGrid({
+        if (layerProperties.extent) {
+            xyzProperties.tileGrid = new TileGrid({
                 extent: layerProperties.extent,
                 minZoom: 3,
                 resolutions: layerProperties.resolutions,
@@ -109,12 +122,12 @@ export class Tile extends React.Component<any, any> {
 
         return Object.assign({}, {
             visible: true,
-            source: new ol.source.XYZ(xyzProperties)
+            source: new XYZ(xyzProperties)
         }, layerProperties)
     };
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(Object),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-
-import * as ol from 'openlayers';
+import { Map } from 'ol';
+import { ZoomSlider as OlZoomSlider } from 'ol/control';
 import { Util } from '../util';
 import { MapView } from '../map';
 
 export class ZoomSlider extends React.Component<any, any> {
 
-    control: ol.control.ZoomSlider;
+    control: OlZoomSlider;
 
     options: any = {
         duration: undefined,
@@ -32,7 +32,7 @@ export class ZoomSlider extends React.Component<any, any> {
 
     componentDidMount() {
         let options = Util.getOptions(Object['assign'](this.options, this.props));
-        this.control = new ol.control.ZoomSlider(options);
+        this.control = new OlZoomSlider(options);
         this.context.mapComp.controls.push(this.control);
 
         let olEvents = Util.getEvents(this.events, this.props);
@@ -43,7 +43,7 @@ export class ZoomSlider extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 
 }

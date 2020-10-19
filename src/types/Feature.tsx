@@ -1,6 +1,8 @@
-import * as ol from 'openlayers';
+import { Feature as OlFeature } from 'ol';
+import GeoJSON from 'ol/format/GeoJSON';
+import WKT from 'ol/format/WKT';
 
-const wktFormat: ol.format.WKT = new ol.format.WKT();
+const wktFormat: WKT = new WKT();
 
 /**
  * @component
@@ -19,14 +21,14 @@ export class Feature {
     properties: Object|null;
     projection: string = "EPSG:4326";
     coordinates: Array<Number>|null;
-    _feature: ol.Feature;
+    _feature: OlFeature;
 
     constructor(props?: any, projection?: string) {
-        if(props) {
-            if (props instanceof ol.Feature) {
+        if (props) {
+            if (props instanceof OlFeature) {
                 this.readFromMapFeature(props, projection);
             } else {
-                if(props.wkt) {
+                if (props.wkt) {
                     this.setGeometry(props.wkt);
                 }
                 this.setId(props.id || this.id);
@@ -43,13 +45,13 @@ export class Feature {
     setGeometry(wkt: string, projection?: string): void {
         this.wkt = wkt;
         let mapFeature = wktFormat.readFeature(this.wkt);
-        if(!this._feature){
+        if (!this._feature) {
             this.createFeature();
         }
-        const geom:any = mapFeature.getGeometry();
+        const geom: any = mapFeature.getGeometry();
         this.setCoordinates(geom.getCoordinates());
 
-        if(projection) {
+        if (projection) {
             this.setProjection(projection);
         }
     }
@@ -70,33 +72,33 @@ export class Feature {
         return this.coordinates;
     }
 
-    getCoordinatesTransformed(from: string, to:string): Array<Number> | null {
-        if(!this._feature){
+    getCoordinatesTransformed(from: string, to: string): Array<Number> | null {
+        if (!this._feature) {
             this.createFeature();
         }
 
-        const geom:any = this._feature.getGeometry();
+        const geom: any = this._feature.getGeometry();
         return geom.clone().transform(from, to).getCoordinates();
     }
 
-    createFeature(){
-        this._feature = new ol.Feature();
+    createFeature() {
+        this._feature = new OlFeature();
         this._feature.setProperties(this.getProperties());
         this._feature.setId(this.getId());
 
-        if(this.wkt){
+        if (this.wkt) {
             let mapFeature = wktFormat.readFeature(this.wkt);
             this._feature.setGeometry(mapFeature.getGeometry());
-            const geom:any = mapFeature.getGeometry();
+            const geom: any = mapFeature.getGeometry();
             this.setCoordinates(geom.getCoordinates());
         }
     }
 
     readGeoJSON(geoJSON: Object): void {
-        const format = new ol.format.GeoJSON();
-        try{
-            const geometry:any = format.readGeometry(geoJSON);
-            if(!this._feature){
+        const format = new GeoJSON();
+        try {
+            const geometry: any = format.readGeometry(geoJSON);
+            if (!this._feature) {
                 this.createFeature();
             }
 
@@ -104,7 +106,7 @@ export class Feature {
             this.setGeometry(wktFormat.writeGeometry(geometry));
 
             this.setCoordinates(geometry.getCoordinates());
-        }catch(e){
+        } catch (e) {
             throw new Error(e);
         }
     }
@@ -125,32 +127,36 @@ export class Feature {
         this.properties = properties;
     }
 
-    readFromMapFeature(origFeature: ol.Feature, projection: string): void {
+    readFromMapFeature(origFeature: OlFeature, projection: string): void {
         let feature = origFeature.clone();
-        if(projection && this.projection !== projection){
+        if (projection && this.projection !== projection && feature.getGeometry()) {
             feature.getGeometry().transform(projection, this.projection);
         }
         this._feature = origFeature;
-        this.setGeometry(wktFormat.writeGeometry(feature.getGeometry()));
-        const geom:any = feature.getGeometry();
-        this.setCoordinates(geom.getCoordinates());
+
+        if (feature.getGeometry()) {
+            this.setGeometry(wktFormat.writeGeometry(feature.getGeometry()));
+            const geom: any = feature.getGeometry();
+            this.setCoordinates(geom.getCoordinates());
+        }
+
         let properties = feature.getProperties();
         delete properties.geometry;
         delete properties.style;
         this.setProperties(properties);
-        if(origFeature.getId()) {
+        if (origFeature.getId()) {
             this.id = `${origFeature.getId()}`;
-        }else if(origFeature.get("id")) {
+        } else if (origFeature.get("id")) {
             this.id = `${origFeature.get("id")}`;
         }
 
-        this._feature.setId(this.id);
+        this._feature.id = this.id;
     }
 
-    getMapFeature(projection?: string): ol.Feature {
+    getMapFeature(projection?: string): OlFeature {
         let mapFeature = wktFormat.readFeature(this.wkt);
 
-        if(!this._feature){
+        if (!this._feature) {
             this.createFeature();
         }
         let feature = this._feature;
@@ -158,7 +164,7 @@ export class Feature {
         feature.setProperties(this.properties);
 
 
-        if(projection && this.projection !== projection){
+        if (projection && this.projection !== projection && feature.getGeometry()) {
             feature.getGeometry().transform(this.projection, projection);
         }
 

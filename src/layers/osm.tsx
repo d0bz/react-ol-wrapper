@@ -1,12 +1,14 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
+import { Map } from 'ol';
+import TileLayer from 'ol/layer/Tile';
+import OSM from 'ol/source/OSM';
+
 import { Util } from "../util";
-import { MapView } from '../map';
 
 export class OSM extends React.Component<any, any> {
 
-    layer: ol.layer.Tile;
+    layer: TileLayer;
 
     static propTypes = {
         /**
@@ -52,15 +54,15 @@ export class OSM extends React.Component<any, any> {
         }
     }
 
-    addLayer(props){
+    addLayer(props) {
         const self = this;
         let options = {
             source: undefined
         };
 
-        let source = new ol.source.OSM();
+        let source = new OSM({});
         options.source = source;
-        self.layer = new ol.layer.Tile(options);
+        self.layer = new TileLayer(options);
         if (props.zIndex) {
             self.layer.setZIndex(props.zIndex);
         }
@@ -84,6 +86,6 @@ export class OSM extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(Object),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

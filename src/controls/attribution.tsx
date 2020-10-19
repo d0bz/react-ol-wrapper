@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
+import { Map } from 'ol';
+import { Attribution as OlAttribution } from 'ol/control';
 import { Util } from '../util';
 import { MapView } from '../map';
 
@@ -45,7 +46,7 @@ export class Attribution extends React.Component<any, any> {
         render: PropTypes.func,
     };
 
-    control: ol.control.Attribution;
+    control: OlAttribution;
 
     events: any = {
         'change': undefined,
@@ -61,19 +62,35 @@ export class Attribution extends React.Component<any, any> {
     }
 
     componentDidMount() {
-        let options = Util.getOptions(Object['assign'](Object.keys(Attribution.propTypes), this.props));
-        this.control = new ol.control.Attribution(options);
-        this.context.mapComp.controls.push(this.control);
+        const self = this;
 
-        let olEvents = Util.getEvents(this.events, this.props);
+        if (!this.context.mapComp.map) {
+            this.context.mapComp.mapReadyCallbacks.push(() => {
+                self.addControl(self.props);
+            });
+        } else {
+            this.addControl(this.props);
+        }
+    }
+
+    addControl(props) {
+        let options = Util.getOptions(Object['assign'](Object.keys(Attribution.propTypes), props));
+        this.control = new OlAttribution(options);
+        this.context.mapComp.map.addControl(this.control);
+
+        let olEvents = Util.getEvents(this.events, props);
         for (let eventName in olEvents) {
             this.control.on(eventName, olEvents[eventName]);
         }
     }
 
+    componentWillUnmount() {
+        this.context.mapComp.map.removeControl(this.control);
+    }
+
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 
 }

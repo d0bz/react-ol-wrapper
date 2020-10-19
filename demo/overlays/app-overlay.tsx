@@ -1,61 +1,58 @@
 import * as React from "react";
-import * as ReactDOM from "react-dom";
-import * as ol from 'openlayers';
 import {
-  interaction, layer, custom, control, //name spaces
-  Interactions, Overlays, Controls,     //group
-  Map, Layers, Overlay, Util    //objects
-} from "react-openlayers";
+    interaction, layer, custom, control, //name spaces
+    Interactions, Overlays, Controls,     //group
+    Map, Layers, Overlay, Util    //objects
+} from "react-ol";
 
 //AppOverlay to avoid conflict to Overlay
 export class AppOverlay extends React.Component<any,any> {
-  overlayComp: any;
-  popupComp: any;
+    constructor(props) {
+        super(props);
 
-  constructor(props) {
-    super(props);
-  } 
+        this.state = {
+            pos: [0, 0],
+            visible: false
+        };
+    }
 
-  showPopup = (evt) => {
-    this.overlayComp.overlay.setPosition(evt.coordinate);
-    var lonlat = ol.proj.transform(evt.coordinate, 'EPSG:3857', 'EPSG:4326');
+    showPopup = (coordinate) => {
+        this.setState({
+            pos: coordinate,
+            visible: true
+        })
+    };
 
-    this.popupComp.setContents(
-      `<p>You clicked here:</p><code> ${lonlat[0]}, ${lonlat[1]}</code>`
-    );
-    this.popupComp.show();
-  }
+    hidePopup = () => {
+        this.setState({
+            visible: false
+        })
+    };
 
-  render(){
-    return (
-      <div>
-        <Map onClick={this.showPopup}>
-          <Layers>
-            <layer.OSM/>
-          </Layers>
-          <Overlays>
-            <Overlay ref={comp => this.overlayComp = comp}>
-              <custom.Popup ref={comp => this.popupComp = comp}>
-              </custom.Popup>
-            </Overlay>
-          </Overlays>
-        </Map>
-        <a href="https://github.com/allenhwkim/react-openlayers/blob/master/app/overlays/app-overlay.tsx">Source Code</a>
-        <pre>{`
-        <Map onClick={this.showPopup}>
-          <Layers>
-            <layer.Tile source={new ol.source.Stamen({ layer: 'watercolor' })}/>
-          </Layers>
-          <Overlays>
-            <Overlay ref={comp => this.overlayComp = comp}>
-              <custom.Popup ref={comp => this.popupComp = comp}>
-              </custom.Popup>
-            </Overlay>
-          </Overlays>
-        </Map>
-       `}</pre>
-      </div>
-    );
-  }
-
+    render() {
+        return (
+            <div>
+                <h1>
+                    !!! Currently bindings inside popup won't work, prepare and forgot!!!
+                </h1>
+                <Map onClick={this.showPopup}>
+                    <Layers>
+                        <layer.OSM />
+                    </Layers>
+                    <Overlays>
+                        { this.state.visible &&
+                        <Overlay position={this.state.pos} onClose={this.hidePopup}>
+                           <div>
+                               <p>You clicked here:</p>
+                               <code>
+                                   {this.state.pos[0]}, {this.state.pos[1]}
+                               </code>
+                           </div>
+                        </Overlay>
+                        }
+                    </Overlays>
+                </Map>
+            </div>
+        );
+    }
 }

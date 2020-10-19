@@ -10,8 +10,7 @@ const Interactions = GeoMapCore.Interactions;
 const interaction = GeoMapCore.interaction;
 
 let coordinates = [24.761769696908118,59.43256023120438];
-let extentAroundCoordinates = Util.createExtentFromLonLat(coordinates[0], coordinates[1], 10000);
-let extent = Util.transformExtent(extentAroundCoordinates, "EPSG:4326", "EPSG:3857");
+let extent = Util.createExtentFromLonLat(coordinates[0], coordinates[1], 10000);
 
 initialState = { inited: false, features: [] }
 

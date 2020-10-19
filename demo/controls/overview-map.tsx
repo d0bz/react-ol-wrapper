@@ -1,11 +1,10 @@
 import * as React from "react";
-import * as ReactDOM from "react-dom";
-import * as ol from 'openlayers';
+
 import {
     interaction, layer, custom, control, //name spaces
     Interactions, Overlays, Controls,     //group
     Map, Layers, Overlay, Util    //objects
-} from "react-openlayers";
+} from "react-ol";
 
 export class OverviewMap extends React.Component<any,any> {
     constructor(props) {
@@ -18,7 +17,7 @@ export class OverviewMap extends React.Component<any,any> {
                 <Map view={{
                     projection: "EPSG:3301"
                 }}
-                     extent={[331340.8141767173, 6350518.156321323, 795630.1404358551, 6662202.859234595]}
+                     extent={[22.883216612644446, 57.80457411797305, 27.750159972019446, 59.685116344414965]}
                 >
                     <Layers>
                         <layer.WmsTile properties={{
@@ -27,6 +26,12 @@ export class OverviewMap extends React.Component<any,any> {
 					"url": "https://kaart.maaamet.ee/wms/fotokaart",
 					"version": "1.1.1"
 				}}/>
+                        <layer.WmsTile properties={{
+                            "featureNS": "avk",
+                            "featureType": "avk_massiivid",
+                            "url": "https://kls.pria.ee/geoserver/avk/wms",
+                            "version": "1.1.0"
+                        }}/>
                     </Layers>
                     <Controls>
                         <control.OverviewMap collapsed={false}>
@@ -46,7 +51,7 @@ export class OverviewMap extends React.Component<any,any> {
         <Map view={{
                     projection: "EPSG:3301"
                 }}
-               extent={[331340.8141767173, 6350518.156321323, 795630.1404358551, 6662202.859234595]}
+               extent={[22.883216612644446, 57.80457411797305, 27.750159972019446, 59.685116344414965]}
           >
               <Layers>
                   <layer.WmsTile properties={{
@@ -60,9 +65,9 @@ export class OverviewMap extends React.Component<any,any> {
             <control.OverviewMap collapsed={false}>
                 <Layers>
                     <layer.WmsTile properties={{
-					"featureNS": "omniva",
-					"featureType": "a3_mesh_borders",
-					"url": "http://areamgmt-dataproc.post.ee:8080/geoserver/omniva/wms",
+					"featureNS": "avk",
+					"featureType": "avk_massiivid",
+					"url": "https://kls.pria.ee/geoserver/avk/wms",
 					"version": "1.1.0"
 				}}/>
                 </Layers>

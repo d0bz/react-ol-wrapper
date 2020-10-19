@@ -1,12 +1,18 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
+
+import { Map, Feature as OlFeature} from 'ol';
+import { Snap as OlSnap } from 'ol/interaction';
+
+import Collection from 'ol/Collection';
+
+
 import { Util } from "../util";
 import { MapView } from '../map';
 
 export class Snap extends React.Component<any, any> {
 
-    interaction: ol.interaction.Snap;
+    interaction: OlSnap;
     interactions: any[] = [];
     projection: string = "EPSG:3857";
 
@@ -94,7 +100,7 @@ export class Snap extends React.Component<any, any> {
         self.projection = self.context.mapComp.map.getView().getProjection().getCode();
         let options = Util.getOptions(Object['assign'](Object.keys(Snap.propTypes), props));
 
-        const features: ol.Collection<ol.Feature> = new ol.Collection([]);
+        const features: Collection<OlFeature> = new Collection([]);
 
         if(options.features){
             options.features.map((f) => {
@@ -116,15 +122,15 @@ export class Snap extends React.Component<any, any> {
                             opts.pixelTolerance = options.pixelTolerance;
                         }
 
-                        const newInteraction = new ol.interaction.Snap(opts);
-                        this.context.mapComp.map.addInteraction(newInteraction);
+                        const newInteraction = new OlSnap(opts);
+                        self.context.mapComp.map.addInteraction(newInteraction);
 
-                        let olEvents = Util.getEvents(this.events, this.props);
+                        let olEvents = Util.getEvents(self.events, self.props);
                         for (let eventName in olEvents) {
                             newInteraction.on(eventName, olEvents[eventName]);
                         }
 
-                        this.interactions.push({
+                        self.interactions.push({
                             source: layerObject.getSource(),
                             interaction: newInteraction
                         });
@@ -134,7 +140,7 @@ export class Snap extends React.Component<any, any> {
             });
         }
 
-        this.interaction = new ol.interaction.Snap(options);
+        this.interaction = new OlSnap(options);
 
         if (features.getLength() > 0) {
             features.forEach(feature => {
@@ -152,6 +158,6 @@ export class Snap extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

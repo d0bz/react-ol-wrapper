@@ -3,7 +3,7 @@ import {
     interaction, layer, custom, control, //name spaces
     Interactions, Overlays, Controls,     //group
     Map, Layers, Overlay, Util    //objects
-} from "react-openlayers";
+} from "react-ol";
 
 export class Tile extends React.Component<any,any> {
     constructor(props) {
@@ -16,7 +16,7 @@ export class Tile extends React.Component<any,any> {
                 <Map view={{
                     projection: "EPSG:3301"
                 }}
-                     extent={[331340.8141767173, 6350518.156321323, 795630.1404358551, 6662202.859234595]}
+                     extent={[22.883216612644446, 57.80457411797305, 27.750159972019446, 59.685116344414965]}
                 >
                     <Layers>
                         <layer.Tile properties={{
@@ -32,7 +32,7 @@ export class Tile extends React.Component<any,any> {
         <Map view={{
                     projection: "EPSG:3301"
                 }}
-                     extent={[331340.8141767173, 6350518.156321323, 795630.1404358551, 6662202.859234595]}
+                     extent={[22.883216612644446, 57.80457411797305, 27.750159972019446, 59.685116344414965]}
                 >
           <Layers>
                  <layer.Tile properties={{

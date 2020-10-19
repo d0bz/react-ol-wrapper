@@ -1,12 +1,14 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
+import { Map } from 'ol';
+import { ZoomToExtent as OlZoomToExtent} from 'ol/control';
+
 import { Util } from '../util';
 import { MapView } from '../map';
 
 export class ZoomToExtent extends React.Component<any, any> {
 
-    control: ol.control.ZoomToExtent;
+    control: OlZoomToExtent;
 
     options: any = {
         className: undefined,
@@ -31,7 +33,7 @@ export class ZoomToExtent extends React.Component<any, any> {
 
     componentDidMount() {
         let options = Util.getOptions(Object['assign'](this.options, this.props));
-        this.control = new ol.control.ZoomToExtent(options);
+        this.control = new OlZoomToExtent(options);
         this.context.mapComp.controls.push(this.control);
 
         let olEvents = Util.getEvents(this.events, this.props);
@@ -42,7 +44,7 @@ export class ZoomToExtent extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 
 }

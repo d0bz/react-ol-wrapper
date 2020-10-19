@@ -1,12 +1,13 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map } from 'ol';
+import { KeyboardPan as OlKeyboardPan } from 'ol/interaction';
+import { Util } from '../util';
 import { MapView } from '../map';
 
 export class KeyboardPan extends React.Component<any, any> {
 
-    interaction: ol.interaction.KeyboardPan;
+    interaction: OlKeyboardPan;
 
     options: any = {
         condition: undefined,
@@ -35,7 +36,7 @@ export class KeyboardPan extends React.Component<any, any> {
             this.context.mapComp.map.removeInteraction(this.interaction);
         }
 
-        this.interaction = new ol.interaction.KeyboardPan(options);
+        this.interaction = new OlKeyboardPan(options);
 
         if (!this.context.mapComp.map) {
             this.context.mapComp.interactions.push(this.interaction);
@@ -55,6 +56,6 @@ export class KeyboardPan extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

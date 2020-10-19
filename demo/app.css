@@ -17,6 +17,11 @@
 .contents {
   width: 80%;
   min-width: 400px;
+  height: 500px;
+}
+
+.contents > div{
+  height: 100%;
 }
 
 .todo {

@@ -1,26 +1,40 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map, Feature as OlFeature } from 'ol';
+import { Fill, Stroke, Circle, Style } from 'ol/style';
+import { Polygon, Point, LineString, LinearRing, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection, GeometryType } from 'ol/geom';
+import DragBox from 'ol/interaction/DragBox';
+import Modify from 'ol/interaction/Modify';
+import { always, never, platformModifierKeyOnly } from 'ol/events/condition';
+import { boundingExtent } from 'ol/extent';
+import { equals as olEquals } from 'ol/coordinate';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
+import Collection from 'ol/Collection';
+import WKT from 'ol/format/WKT';
+import { getUid } from 'ol/util';
+
+
+import { Util } from '../util';
 import { MapView } from '../map';
 import * as jsts from 'jsts';
 import { Feature } from '../types/Feature';
 
 
 const modifyStyle = [
-    new ol.style.Style({
-        stroke: new ol.style.Stroke({
+    new Style({
+        stroke: new Stroke({
             color: '#f00',
             width: 4
         }),
-        image: new ol.style.Circle({
-            fill: new ol.style.Fill({ color: 'rgba(0, 255, 0, 0.4)' }),
-            stroke: new ol.style.Stroke({ color: '#00ff03', width: 1.25 }),
+        image: new Circle({
+            fill: new Fill({ color: 'rgba(0, 255, 0, 0.4)' }),
+            stroke: new Stroke({ color: '#00ff03', width: 1.25 }),
             radius: 5
         })
     }),
-    new ol.style.Style({
-        stroke: new ol.style.Stroke({
+    new Style({
+        stroke: new Stroke({
             color: '#00ff03',
             width: 1.25
         })
@@ -28,10 +42,10 @@ const modifyStyle = [
 ];
 
 const invalidStyle = [
-    new ol.style.Style({
-        image: new ol.style.Circle({
-            fill: new ol.style.Fill({ color: 'rgba(255, 0, 0, 0.4)' }),
-            stroke: new ol.style.Stroke({ color: '#f00', width: 3 }),
+    new Style({
+        image: new Circle({
+            fill: new Fill({ color: 'rgba(255, 0, 0, 0.4)' }),
+            stroke: new Stroke({ color: '#f00', width: 3 }),
             radius: 10
         })
     })
@@ -41,15 +55,15 @@ const invalidStyle = [
 export class ModifyArea extends React.Component<any, any> {
 
     projection: string = "EPSG:3857";
-    interaction: ol.interaction.Modify;
-    dragBoxInteraction: ol.interaction.DragBox;
-    source: ol.source.Vector;
-    featuresCollection: ol.Collection<ol.Feature>;
-    layer: ol.layer.Vector;
-    invalidLocationsLayer: ol.layer.Vector;
-    invalidLocationsSource: ol.source.Vector;
+    interaction: Modify;
+    dragBoxInteraction: DragBox;
+    source: VectorSource;
+    featuresCollection: Collection<OlFeature>;
+    layer: VectorLayer;
+    invalidLocationsLayer: VectorLayer;
+    invalidLocationsSource: VectorSource;
     wktWriter: jsts.io.WKTWriter;
-    wktFormat: ol.format.WKT;
+    wktFormat: WKT;
     jtsParser: jsts.io.OL3Parser;
     geomFactory: jsts.geom.GeometryFactory;
 
@@ -73,16 +87,16 @@ export class ModifyArea extends React.Component<any, any> {
     constructor(props) {
         super(props);
 
-        this.featuresCollection = new ol.Collection([]);
-        this.source = new ol.source.Vector({ wrapX: false, features: this.featuresCollection });
-        this.invalidLocationsSource = new ol.source.Vector({ wrapX: false });
+        this.featuresCollection = new Collection([]);
+        this.source = new VectorSource({ wrapX: false, features: this.featuresCollection });
+        this.invalidLocationsSource = new VectorSource({ wrapX: false });
 
         this.jtsParser = new jsts.io.OL3Parser();
-        this.jtsParser.inject(ol.geom.Point, ol.geom.LineString, ol.geom.LinearRing, ol.geom.Polygon, ol.geom.MultiPoint, ol.geom.MultiLineString,
-            ol.geom.MultiPolygon, ol.geom.GeometryCollection);
+        this.jtsParser.inject(Point, LineString, LinearRing, Polygon, MultiPoint, MultiLineString,
+            MultiPolygon, GeometryCollection);
 
         this.wktWriter = new jsts.io.WKTWriter();
-        this.wktFormat = new ol.format.WKT();
+        this.wktFormat = new WKT();
         this.geomFactory = new jsts.geom.GeometryFactory();
     }
 
@@ -165,7 +179,7 @@ export class ModifyArea extends React.Component<any, any> {
         if (isValidOp.getValidationError()) {
             geomInvalid = true;
             const errorCoordinate = isValidOp.getValidationError().getCoordinate();
-            const olFeature = new ol.Feature(new ol.geom.Point([errorCoordinate.x, errorCoordinate.y]));
+            const olFeature = new OlFeature(new Point([errorCoordinate.x, errorCoordinate.y]));
             self.invalidLocationsSource.addFeature(olFeature);
         }
 
@@ -176,7 +190,7 @@ export class ModifyArea extends React.Component<any, any> {
         let self = this;
         let options = Util.getOptions(Object['assign'](this.options, this.props));
 
-        this.layer = new ol.layer.Vector({
+        this.layer = new VectorLayer({
             source: this.source,
             style: modifyStyle
         });
@@ -185,7 +199,7 @@ export class ModifyArea extends React.Component<any, any> {
             self.projection = self.context.mapComp.map.getView().getProjection().getCode();
         });
 
-        this.invalidLocationsLayer = new ol.layer.Vector({
+        this.invalidLocationsLayer = new VectorLayer({
             source: this.invalidLocationsSource,
             style: invalidStyle
         });
@@ -214,26 +228,26 @@ export class ModifyArea extends React.Component<any, any> {
 
         document.onkeyup = function (evt) {
             deleteKeyDown = false;
-            const int:any = self.interaction;
+            const int: any = self.interaction;
             int.dragSegments_ = [];
         };
 
         options.deleteCondition = function (evt) {
             if (deleteKeyDown) {
-                return ol.events.condition.always(evt);
+                return always(evt);
             } else {
-                return ol.events.condition.never(evt);
+                return never(evt);
             }
         };
 
-        this.interaction = new ol.interaction.Modify(options);
+        this.interaction = new Modify(options);
 
-        this.dragBoxInteraction = new ol.interaction.DragBox({
-            condition: ol.events.condition.platformModifierKeyOnly
+        this.dragBoxInteraction = new DragBox({
+            condition: platformModifierKeyOnly
         });
 
 
-        this.interaction.on('modifyend', function (e: ol.interaction.Modify.Event) {
+        this.interaction.on('modifyend', function (e: Modify.Event) {
             let features = e.features.getArray();
             self.invalidLocationsSource.clear();
             let geomInvalid = false;
@@ -318,14 +332,12 @@ export class ModifyArea extends React.Component<any, any> {
                 self.interaction.setActive(false);
                 self.interaction.setActive(true);
 
-                const int:any = ol.interaction;
-                const interaction:any = self.interaction;
-                self.interaction.dispatchEvent(new ol.interaction.Modify.Event(int.ModifyEventType.MODIFYEND, interaction.features_, null));
+                self.interaction.dispatchEvent(new Modify.Event(self.interaction.ModifyEventType.MODIFYEND, interaction.features_, null));
 
             }
         });
 
-        const interaction:any = self.interaction;
+        const interaction: any = self.interaction;
         interaction.handleMoveEvent_ = function (evt, vertextCalculated = false) {
             if (!deleteKeyDown) {
                 return;
@@ -341,21 +353,20 @@ export class ModifyArea extends React.Component<any, any> {
             var vertexFeature = this.vertexFeature_;
             if (vertexFeature) {
                 var insertVertices = [];
-                var geometry = /** @type {ol.geom.Point} */
+                var geometry = /** @type {Point} */
                     vertexFeature.getGeometry();
                 var vertex = geometry.getCoordinates();
-                var vertexExtent = ol.extent.boundingExtent([vertex]);
+                var vertexExtent = boundingExtent([vertex]);
                 var segmentDataMatches = this.rBush_.getInExtent(vertexExtent);
                 var componentSegments = {};
-                const modifyInteraction:any = ol.interaction.Modify;
+                const modifyInteraction: any = Modify;
                 segmentDataMatches.sort(modifyInteraction.compareIndexes_);
 
                 if (segmentDataMatches && segmentDataMatches.length > 0 && ((segmentDataMatches[0].feature.getGeometry().getCoordinates()[0][0] instanceof Array && segmentDataMatches[0].feature.getGeometry().getCoordinates()[0].length > 4) || segmentDataMatches[0].feature.getGeometry().getCoordinates().length > 4)) {
                     for (var i = 0, ii = segmentDataMatches.length; i < ii; ++i) {
                         var segmentDataMatch = segmentDataMatches[i];
                         var segment = segmentDataMatch.segment;
-                        const openlayers:any = ol;
-                        var uid = openlayers.getUid(segmentDataMatch.feature);
+                        var uid = getUid(segmentDataMatch.feature);
                         var depth = segmentDataMatch.depth;
                         if (depth) {
                             uid += '-' + depth.join('-');
@@ -364,20 +375,19 @@ export class ModifyArea extends React.Component<any, any> {
                         if (!componentSegments[uid]) {
                             componentSegments[uid] = new Array(2);
                         }
-                        const olGeom:any = ol.geom;
-                        const olCoordinate:any = ol.coordinate;
-                        if (segmentDataMatch.geometry.getType() === olGeom.GeometryType.CIRCLE && segmentDataMatch.index === modifyInteraction.MODIFY_SEGMENT_CIRCLE_CIRCUMFERENCE_INDEX) {
+
+                        if (segmentDataMatch.geometry.getType() === GeometryType.CIRCLE && segmentDataMatch.index === modifyInteraction.MODIFY_SEGMENT_CIRCLE_CIRCUMFERENCE_INDEX) {
                             var closestVertex = modifyInteraction.closestOnSegmentData_(pixelCoordinate, segmentDataMatch);
-                            if (olCoordinate.equals(closestVertex, vertex) && !componentSegments[uid][0]) {
+                            if (olEquals(closestVertex, vertex) && !componentSegments[uid][0]) {
                                 this.dragSegments_.push([segmentDataMatch, 0]);
                                 componentSegments[uid][0] = segmentDataMatch;
                             }
-                        } else if (olCoordinate.equals(segment[0], vertex) && !componentSegments[uid][0]) {
+                        } else if (olEquals(segment[0], vertex) && !componentSegments[uid][0]) {
                             this.dragSegments_.push([segmentDataMatch, 0]);
                             componentSegments[uid][0] = segmentDataMatch;
-                        } else if (olCoordinate.equals(segment[1], vertex) && !componentSegments[uid][1]) {
+                        } else if (olEquals(segment[1], vertex) && !componentSegments[uid][1]) {
                             // prevent dragging closed linestrings by the connecting node
-                            if ((segmentDataMatch.geometry.getType() === olGeom.GeometryType.LINE_STRING || segmentDataMatch.geometry.getType() === olGeom.GeometryType.MULTI_LINE_STRING) && componentSegments[uid][0] && componentSegments[uid][0].index === 0) {
+                            if ((segmentDataMatch.geometry.getType() === GeometryType.LINE_STRING || segmentDataMatch.geometry.getType() === GeometryType.MULTI_LINE_STRING) && componentSegments[uid][0] && componentSegments[uid][0].index === 0) {
                                 continue;
                             }
                             this.dragSegments_.push([segmentDataMatch, 1]);
@@ -456,6 +466,6 @@ export class ModifyArea extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

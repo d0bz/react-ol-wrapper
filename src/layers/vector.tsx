@@ -1,39 +1,44 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { difference } from 'lodash';
-import { Util } from "../util";
+import {Map, Feature as OlFeature} from 'ol';
+import {Fill, Stroke, Circle, Style as OlStyle, RegularShape} from 'ol/style';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
+import {difference} from 'lodash';
+import {Util} from '../util';
+import {Style} from '../types/Style';
+import {Feature} from "../types/Feature";
 
-
-const backgroundStyle = new ol.style.Style({
-    image: new ol.style.RegularShape({
-        stroke: new ol.style.Stroke({ color: [0, 0, 0, 0] }),
-        fill: new ol.style.Fill({ color: [255, 255, 255, 0.005] }),
+const backgroundStyle = new OlStyle({
+    image: new RegularShape({
+        stroke: new Stroke({color: [0, 0, 0, 0]}),
+        fill: new Fill({color: [255, 255, 255, 0.005]}),
         points: 4,
         radius: 30, // <--------- control its size
     })
 });
 
-const defaultStyle = new ol.style.Style({
-    stroke: new ol.style.Stroke({
+const defaultStyle = new OlStyle({
+    stroke: new Stroke({
         color: '#04c4f9',
         width: 4
     }),
-    fill: new ol.style.Fill({
+    fill: new Fill({
         color: 'rgba(4, 196, 249, 0.5)'
     }),
-    image: new ol.style.Circle({
+    image: new Circle({
         radius: 6,
-        fill: new ol.style.Fill({ color: "rgba(255,255,255,1)" }),
-        stroke: new ol.style.Stroke({ color: "rgba(4, 196, 249,1)", width: 2 })
+        fill: new Fill({color: "rgba(255,255,255,1)"}),
+        stroke: new Stroke({color: "rgba(4, 196, 249,1)", width: 2})
     })
 });
+
 
 export class Vector extends React.Component<any, any> {
 
     projection: string = "EPSG:3857";
-    layer: ol.layer.Vector;
-    source: ol.source.Vector;
+    layer: VectorLayer;
+    source: VectorSource;
 
     static propTypes = {
 
@@ -48,10 +53,15 @@ export class Vector extends React.Component<any, any> {
         layerKey: PropTypes.string,
 
         /**
-         * Style definition
+         * Vector source options
+         */
+        sourceOptions: PropTypes.object,
+
+        /**
+         * Style definition, can be Array of styles or one Style
          * {type.Style}
          */
-        style: PropTypes.object,
+        style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
     };
 
     events: any = {
@@ -91,20 +101,42 @@ export class Vector extends React.Component<any, any> {
         }
     }
 
+    getStyles(style) {
+        const styles = [];
+        if (style instanceof Array) {
+            style.forEach((style: Style) => {
+                styles.push(style.getMapStyle());
+            })
+        } else {
+            styles.push(style.getMapStyle());
+        }
+        return styles;
+    }
+
     addLayer(props) {
         const self = this;
         this.projection = self.context.mapComp.map.getView().getProjection().getCode();
-        let options = {
-            style: [backgroundStyle, defaultStyle],
-            source: undefined,
-        };
 
+        let styles = [backgroundStyle];
+        let styleFunction = null;
         if (props.style) {
-            let style: ol.style.Style = props.style.getMapStyle();
-            options.style.push(style);
+            if (typeof props.style === 'function') {
+                styleFunction = (feature: OlFeature, resolution: number) => {
+                    return self.getStyles(props.style(new Feature(feature, self.projection), resolution));
+                };
+            } else {
+                styles = styles.concat(this.getStyles(props.style));
+            }
         }
 
-        this.source = new ol.source.Vector({ wrapX: false });
+        let options = {
+            style: styleFunction || styles,
+            source: undefined,
+            maxResolution: undefined,
+            minResolution: undefined,
+        };
+
+        this.source = new VectorSource({wrapX: false});
         options.source = this.source;
 
         if (props.features) {
@@ -112,9 +144,21 @@ export class Vector extends React.Component<any, any> {
         } else if (props.source) {
             this.source = props.source;
             options.source = props.source;
+        } else if (props.sourceOptions){
+            options.source = new VectorSource(props.sourceOptions);
         }
 
-        this.layer = new ol.layer.Vector(options);
+        if (props.properties) {
+            if (props.properties.maxScale) {
+                options.maxResolution = Util.getResolutionForScale(props.properties.maxScale, this.context.mapComp.options.projection.getUnits());
+            }
+
+            if (props.properties.minScale) {
+                options.minResolution = Util.getResolutionForScale(props.properties.minScale, this.context.mapComp.options.projection.getUnits());
+            }
+        }
+
+        this.layer = new VectorLayer(options);
         if (props.layerKey) {
             this.layer.set("layerKey", props.layerKey);
         }
@@ -133,20 +177,20 @@ export class Vector extends React.Component<any, any> {
         const self = this;
         if (nextProps !== this.props &&
             (
-            (
-                nextProps.features && this.props.features &&
-                nextProps.features.length != this.props.features.length ||
-                (
-                    difference(nextProps.features.map((f) => f.getId()), this.props.features.map((f) => f.getId())).length !== 0
-                )
-            ) ||
-            (nextProps.updateTimestamp != this.props.updateTimestamp))
+                (nextProps.features && this.props.features && (
+                        nextProps.features.length != this.props.features.length ||
+                        (
+                            difference(nextProps.features.map((f) => f.getId()), self.props.features.map((f) => f.getId())).length !== 0
+                        )
+                    ) || (!this.props.features && nextProps.features)
+                ) ||
+                (nextProps.updateTimestamp != this.props.updateTimestamp))
         ) {
 
             const source: any = this.layer.getSource();
             const loadedExtentsRtree_: any = source.loadedExtentsRtree_;
-            //source.clear();
-            //loadedExtentsRtree_.clear();
+            source.clear();
+            loadedExtentsRtree_.clear();
 
             if (nextProps.features) {
                 source.addFeatures(nextProps.features.map((f) => f.getMapFeature(self.projection)));
@@ -160,6 +204,6 @@ export class Vector extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(Object),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

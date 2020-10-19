@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
+import { Map } from 'ol';
 
 import { Util } from '../util';
 
@@ -32,6 +32,14 @@ export class Controls extends React.Component<any, any> {
     }
 
     static contextTypes: React.ValidationMap<any> = {
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
+
+    static propTypes = {
+        type: PropTypes.string
+    };
+
+    static defaultProps = {
+        type: "Controls"
+    }
 }

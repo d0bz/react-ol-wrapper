@@ -1,15 +1,17 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map } from 'ol';
+import { DoubleClickZoom, Draw as OlDraw } from 'ol/interaction';
+import VectorSource from 'ol/source/Vector';
+import { Util } from '../util';
 import { MapView } from '../map';
-import { Feature } from "../types/Feature";
+import { Feature } from '../types/Feature';
 
 export class Draw extends React.Component<any, any> {
 
     projection: string = "EPSG:3857";
-    interaction: ol.interaction.Draw;
-    source: ol.source.Vector;
+    interaction: OlDraw;
+    source: VectorSource;
 
     static propTypes = {
 
@@ -36,7 +38,7 @@ export class Draw extends React.Component<any, any> {
 
     constructor(props) {
         super(props);
-        this.source = new ol.source.Vector({ wrapX: false });
+        this.source = new VectorSource({ wrapX: false });
     }
 
     render() {
@@ -62,7 +64,7 @@ export class Draw extends React.Component<any, any> {
         }
     }
 
-    addControl(props){
+    addControl(props) {
         const self = this;
 
         self.projection = self.context.mapComp.map.getView().getProjection().getCode();
@@ -78,13 +80,13 @@ export class Draw extends React.Component<any, any> {
 
         if (options.type) {
 
-            if(options.type == "Circle"){
+            if (options.type == "Circle") {
                 console.error("Drawing circle is not yet supported");
                 return;
             }
 
             options.source = this.source;
-            this.interaction = new ol.interaction.Draw(options);
+            this.interaction = new OlDraw(options);
             this.context.mapComp.map.addInteraction(this.interaction);
 
             this.controlDoubleClickZoom(false);
@@ -97,15 +99,15 @@ export class Draw extends React.Component<any, any> {
         }
     }
 
-    initializeEvents(props){
+    initializeEvents(props) {
         const self = this;
         /*let olEvents = Util.getEvents(this.events, props);
          for (let eventName in olEvents) {
          this.interaction.on(eventName, olEvents[eventName]);
          }*/
 
-        if(props.drawend){
-            this.interaction.on("drawend", (e: ol.interaction.Draw.Event) => {
+        if (props.drawend) {
+            this.interaction.on("drawend", (e: OlDraw.Event) => {
                 props.drawend(new Feature(e.feature, self.projection));
             });
         }
@@ -121,7 +123,7 @@ export class Draw extends React.Component<any, any> {
         var interactions = this.context.mapComp.map.getInteractions();
         for (var i = 0; i < interactions.getLength(); i++) {
             var interaction = interactions.item(i);
-            if (interaction instanceof ol.interaction.DoubleClickZoom) {
+            if (interaction instanceof DoubleClickZoom) {
                 interaction.setActive(active);
             }
         }
@@ -129,6 +131,6 @@ export class Draw extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

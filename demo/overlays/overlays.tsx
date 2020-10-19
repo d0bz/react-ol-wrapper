@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {Link} from 'react-router';
-import {AppOverlay} from './app-overlay';
 
 export class Overlays extends React.Component<any, any> {
   constructor(props) {

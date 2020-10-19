@@ -1,30 +1,35 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { difference } from 'lodash';
+import { Map, Feature as OlFeature } from 'ol';
+import { Fill, Stroke, Circle, Style } from 'ol/style';
+import Modify from 'ol/interaction/Modify';
+import { pointerMove } from 'ol/events/condition';
+import Collection from 'ol/Collection';
+
+import { difference } from "lodash";
 import { Util } from "../util";
 import { MapView } from '../map';
 import { Feature } from "../types/Feature";
 
-const modifyStyle = new ol.style.Style({
-    stroke: new ol.style.Stroke({
+const modifyStyle = new Style({
+    stroke: new Stroke({
         color: '#04c4f9',
         width: 4
     }),
-    fill: new ol.style.Fill({
+    fill: new Fill({
         color: 'rgba(4, 196, 249, 0.5)'
     }),
-    image: new ol.style.Circle({
+    image: new Circle({
         radius: 6,
-        fill: new ol.style.Fill({ color: "rgba(255,255,255,1)" }),
-        stroke: new ol.style.Stroke({ color: "rgba(4, 196, 249,1)", width: 2 })
+        fill: new Fill({ color: "rgba(255,255,255,1)" }),
+        stroke: new Stroke({ color: "rgba(4, 196, 249,1)", width: 2 })
     })
 });
 
-export class Modify extends React.Component<any, any> {
+export class ModifyComponent extends React.Component<any, any> {
 
     projection: string = "EPSG:3857";
-    interaction: ol.interaction.Modify;
+    interaction: Modify;
 
     static propTypes = {
 
@@ -39,6 +44,12 @@ export class Modify extends React.Component<any, any> {
          * @return {type.Feature}
          */
         modifyend: PropTypes.func,
+
+        /**
+         * Not required. Can select features from vector layer where key='name' attribute is defined
+         */
+        layerKey: PropTypes.string,
+
     };
 
     events: any = {
@@ -70,13 +81,14 @@ export class Modify extends React.Component<any, any> {
     }
 
     componentWillReceiveProps(nextProps) {
+        const self = this;
         if (nextProps !== this.props &&
-            (
-                nextProps.features && this.props.features &&
-                nextProps.features.length != this.props.features.length ||
-                (
-                    difference(nextProps.features.map((f) => f.getId()), this.props.features.map((f) => f.getId())).length !== 0
-                )
+            (nextProps.features && this.props.features && (
+                    nextProps.features.length != this.props.features.length ||
+                    (
+                        difference(nextProps.features.map((f) => f.getId()), self.props.features.map((f) => f.getId())).length !== 0
+                    )
+                ) || (!this.props.features && nextProps.features)
             )) {
             this.addControl(nextProps);
         }
@@ -86,14 +98,14 @@ export class Modify extends React.Component<any, any> {
         const self = this;
         self.projection = self.context.mapComp.map.getView().getProjection().getCode();
 
-        let options = Util.getOptions(Object['assign'](Object.keys(Modify.propTypes), props));
+        let options = Util.getOptions(Object['assign'](Object.keys(ModifyComponent.propTypes), props));
 
         if(this.interaction){
             this.context.mapComp.map.removeInteraction(this.interaction);
         }
 
-        let features: ol.Collection<ol.Feature> = new ol.Collection();
-        let style: ol.style.Style = modifyStyle;
+        let features: Collection<OlFeature> = new Collection();
+        let style: Style = modifyStyle;
 
         if (options.style) {
             style = options.style.getMapStyle();
@@ -101,7 +113,8 @@ export class Modify extends React.Component<any, any> {
 
         let params = {
             features: features,
-            style: style
+            style: style,
+            source: undefined,
         };
 
         if (options.features) {
@@ -110,7 +123,15 @@ export class Modify extends React.Component<any, any> {
             });
         }
 
-        this.interaction = new ol.interaction.Modify(params);
+        if (options.layerKey) {
+            this.context.mapComp.map.getLayers().forEach(function (layer) {
+                if (options.layerKey === layer.get("layerKey")) {
+                    params.source = layer.getSource();
+                }
+            });
+        }
+
+        this.interaction = new Modify(params);
 
         this.context.mapComp.map.addInteraction(this.interaction);
 
@@ -125,7 +146,7 @@ export class Modify extends React.Component<any, any> {
          }*/
 
         if(props.modifyend){
-            this.interaction.on("modifyend", (e: ol.interaction.Modify.Event) => {
+            this.interaction.on("modifyend", (e: Modify.Event) => {
                 props.modifyend(new Feature(e.features.getArray()[0], self.projection));
             });
         }
@@ -137,7 +158,7 @@ export class Modify extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 
 }

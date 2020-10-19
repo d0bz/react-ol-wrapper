@@ -1,28 +1,42 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map, Feature as OlFeature } from 'ol';
+import { Fill, Stroke, Circle, Style } from 'ol/style';
+import { Polygon, Point, LineString, LinearRing, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection, GeometryType } from 'ol/geom';
+import DragBox from 'ol/interaction/DragBox';
+import Draw from 'ol/interaction/Draw';
+import Select from 'ol/interaction/Select';
+import { always, never, platformModifierKeyOnly, shiftKeyOnly, singleClick } from 'ol/events/condition';
+import { boundingExtent } from 'ol/extent';
+import { squaredDistance, closestOnCircle, closestOnSegment } from 'ol/coordinate';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
+import Collection from 'ol/Collection';
+import WKT from 'ol/format/WKT';
+import GeoJSON from 'ol/format/GeoJSON';
+import { transform } from 'ol/proj';
+import { Util } from '../util';
 import { MapView } from '../map';
-import  { Feature }  from '../types/Feature';
+import { Feature } from '../types/Feature';
 import * as jsts from 'jsts';
 
-const resultStyle = new ol.style.Style({
-    stroke: new ol.style.Stroke({
+const resultStyle = new Style({
+    stroke: new Stroke({
         color: '#f00',
         width: 4
     }),
-    fill: new ol.style.Fill({
+    fill: new Fill({
         color: 'rgba(255,0,0,0)'
     })
 });
 
 
-const selectStyle = new ol.style.Style({
-    stroke: new ol.style.Stroke({
+const selectStyle = new Style({
+    stroke: new Stroke({
         color: '#3399cc',
         width: 1
     }),
-    fill: new ol.style.Fill({
+    fill: new Fill({
         color: 'rgba(255,255,255,0.2)'
     })
 });
@@ -32,18 +46,18 @@ const REQUEST_ID = "MERGE_FEATURE_REQUEST";
 export class Merge extends React.Component<any, any> {
 
     projection: string = "EPSG:3857";
-    interaction: ol.interaction.Draw;
-    dragBoxInteraction: ol.interaction.DragBox;
-    selectInteraction: ol.interaction.Select;
-    source: ol.source.Vector;
-    layer: ol.layer.Vector;
-    resultSource: ol.source.Vector;
-    resultLayer: ol.layer.Vector;
+    interaction: Draw;
+    dragBoxInteraction: DragBox;
+    selectInteraction: Select;
+    source: VectorSource;
+    layer: VectorLayer;
+    resultSource: VectorSource;
+    resultLayer: VectorLayer;
     wktWriter: jsts.io.WKTWriter;
-    wktFormat: ol.format.WKT;
+    wktFormat: WKT;
     jtsParser: jsts.io.OL3Parser;
-    mergeFeatures: ol.Collection<ol.Feature>;
-    geojsonFormat: ol.format.GeoJSON;
+    mergeFeatures: Collection<OlFeature>;
+    geojsonFormat: GeoJSON;
 
     options: any = {};
     events: any = {};
@@ -53,19 +67,19 @@ export class Merge extends React.Component<any, any> {
 
     constructor(props) {
         super(props);
-        this.mergeFeatures = new ol.Collection([]);
-        this.source = new ol.source.Vector({ wrapX: false, features: this.mergeFeatures });
-        this.resultSource = new ol.source.Vector({ wrapX: false });
+        this.mergeFeatures = new Collection([]);
+        this.source = new VectorSource({ wrapX: false, features: this.mergeFeatures });
+        this.resultSource = new VectorSource({ wrapX: false });
 
 
-        this.geojsonFormat = new ol.format.GeoJSON();
+        this.geojsonFormat = new GeoJSON();
 
         this.jtsParser = new jsts.io.OL3Parser();
-        this.jtsParser.inject(ol.geom.Point, ol.geom.LineString, ol.geom.LinearRing, ol.geom.Polygon, ol.geom.MultiPoint, ol.geom.MultiLineString,
-            ol.geom.MultiPolygon, ol.geom.GeometryCollection);
+        this.jtsParser.inject(Point, LineString, LinearRing, Polygon, MultiPoint, MultiLineString,
+            MultiPolygon, GeometryCollection);
 
         this.wktWriter = new jsts.io.WKTWriter();
-        this.wktFormat = new ol.format.WKT();
+        this.wktFormat = new WKT();
     }
 
     render() {
@@ -80,12 +94,12 @@ export class Merge extends React.Component<any, any> {
             self.projection = self.context.mapComp.map.getView().getProjection().getCode();
         });
 
-        this.layer = new ol.layer.Vector({
+        this.layer = new VectorLayer({
             source: this.source,
             style: selectStyle
         });
 
-        this.resultLayer = new ol.layer.Vector({
+        this.resultLayer = new VectorLayer({
             source: this.resultSource,
             style: resultStyle
         });
@@ -136,7 +150,7 @@ export class Merge extends React.Component<any, any> {
                     }
                 });
 
-                this.selectInteraction = new ol.interaction.Select(options);
+                this.selectInteraction = new Select(options);
                 this.selectInteraction.on("select", (e) => self.areaSelected(e));
 
                 if (nextProps.wfsLayerDescription) {
@@ -146,20 +160,20 @@ export class Merge extends React.Component<any, any> {
                 //this.context.mapComp.map.addInteraction(this.selectInteraction);
 
 
-                this.dragBoxInteraction = new ol.interaction.DragBox({
-                    condition: ol.events.condition.platformModifierKeyOnly
+                this.dragBoxInteraction = new DragBox({
+                    condition: platformModifierKeyOnly
                 });
 
                 this.dragBoxInteraction.on('boxend', function () {
                     var extent = self.dragBoxInteraction.getGeometry().getExtent();
-                    self.requestWFSFeatures(extent);
+                    self.requestWFSFeatures(Util.transformExtent(extent, self.projection, 'EPSG:4326'));
                 });
 
                 this.context.mapComp.map.addInteraction(this.dragBoxInteraction);
 
                 self.unselectLastSelected = (e: Event) => {
                     // backspace
-                    const event:any = e;
+                    const event: any = e;
                     if (event.which == 8 && self.mergeFeatures.getLength() > 0) {
                         self.mergeFeatures.removeAt(self.mergeFeatures.getLength() - 1);
                         self.selectionChanged();
@@ -181,8 +195,8 @@ export class Merge extends React.Component<any, any> {
     }
 
     mapOnClick(evt) {
-        const coordinate = evt.coordinate;
-        const extent = new ol.geom.Circle(coordinate, 0.01).getExtent(); // radius in meters
+        const coordinate = transform(evt.coordinate, this.projection, 'EPSG:4326');
+        const extent = Util.createExtentFromLonLat(coordinate[0], coordinate[1], 0.01);
         this.requestWFSFeatures(extent);
     }
 
@@ -194,7 +208,7 @@ export class Merge extends React.Component<any, any> {
             geometryPropertyName: wfsLayerDescription.geometryPropertyName,
             featureType: wfsLayerDescription.featureType,
             featureNS: wfsLayerDescription.featureNS,
-            srsName: self.context.mapComp.map.getView().getProjection().getCode(),
+            srsName: 'EPSG:4326',
             bbox: extent,
             cqlFilter: wfsLayerDescription.cqlFilter
         });
@@ -343,6 +357,6 @@ export class Merge extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

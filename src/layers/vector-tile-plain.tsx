@@ -1,12 +1,14 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
+import { Map } from 'ol';
+import VectorTile from 'ol/layer/VectorTile';
+
 import { Util } from "../util";
 import { MapView } from '../map';
 
 export class VectorTilePlain extends React.Component<any, any> {
 
-    layer: ol.layer.Vector;
+    layer: VectorTile;
 
     options: any = {
         renderBuffer: undefined,
@@ -51,7 +53,7 @@ export class VectorTilePlain extends React.Component<any, any> {
 
     componentDidMount() {
         let options = Util.getOptions(Object.assign(this.options, this.props));
-        this.layer = new ol.layer.VectorTile(options);
+        this.layer = new VectorTile(options);
         if (this.options.callback) {
             this.options.callback(this.layer);
         }
@@ -70,7 +72,7 @@ export class VectorTilePlain extends React.Component<any, any> {
         if (nextProps !== this.props) {
             let options = Util.getOptions(Object.assign(this.options, this.props));
             this.context.mapComp.map.removeLayer(this.layer);
-            this.layer = new ol.layer.VectorTile(options);
+            this.layer = new VectorTile(options);
             if (this.options.callback) {
                 this.options.callback(this.layer);
             }
@@ -92,7 +94,7 @@ export class VectorTilePlain extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 
 }

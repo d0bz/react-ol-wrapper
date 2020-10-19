@@ -1,7 +1,7 @@
 import {ScaleLine} from './scale-line';
 import {Attribution} from './attribution';
 import {FullScreen} from './full-screen';
-import {MousePosition} from './mouse-position';
+import {MousePositionComponent} from './mouse-position';
 import {OverviewMap} from './overview-map';
 import {Rotate} from './rotate';
 import {ZoomSlider} from './zoom-slider';
@@ -13,7 +13,7 @@ let control = {
   ScaleLine: ScaleLine,
   Attribution: Attribution,
   FullScreen: FullScreen,
-  MousePosition: MousePosition,
+  MousePosition: MousePositionComponent,
   OverviewMap: OverviewMap,
   Rotate: Rotate,
   ZoomSlider: ZoomSlider,

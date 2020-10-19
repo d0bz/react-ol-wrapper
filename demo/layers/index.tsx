@@ -5,6 +5,7 @@ export { Tile } from './tile';
 export { TileOsm } from './tile-osm';
 export { WmsTile } from './wms-tile';
 export { Vector } from './vector';
+export { Cluster } from './cluster';
 export { Heatmap } from './heatmap';
 export { Image } from './image';
 export { VectorTile } from './vector-tile';
@@ -29,6 +30,7 @@ export class Layers extends React.Component<any, any> {
                     <li><Link to="layers/osm-vector-tiles">OSM Vector Tiles</Link></li>
                     <li><Link to="layers/heatmap">Heatmap</Link></li>
                     <li><Link to="layers/image">Image</Link></li>
+                    <li><Link to="layers/cluster">Cluster</Link></li>
                 </ul>
                 <div className="contents">
                     {this.props.children}

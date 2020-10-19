@@ -3,7 +3,7 @@ import {
     interaction, layer, custom, control, type, //name spaces
     Interactions, Overlays, Controls,     //group
     Map, Layers, Overlay, Util    //objects
-} from "react-openlayers";
+} from "react-ol";
 
 
 export class Draw extends React.Component<any, any> {

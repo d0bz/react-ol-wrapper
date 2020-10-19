@@ -1,51 +1,58 @@
 import * as React from "react";
-import * as ReactDOM from "react-dom";
-import * as ol from 'openlayers';
+
+import VectorTile from 'ol/source/VectorTile';
+import Attribution from 'ol/control/Attribution';
+import TopoJSON from 'ol/format/TopoJSON';
+import { Fill, Stroke, Circle, Style } from 'ol/style';
+import { createXYZ } from 'ol/tilegrid';
+import { fromLonLat } from 'ol/proj';
+
+
 //import * as olms from 'ol-mapbox-style'; // in case we use olms
 import * as qwest from 'qwest';          // in case we need to do ajax call
 import {
   interaction, layer, custom, control, //name spaces
   Interactions, Overlays, Controls,     //group
   Map, Layers, Overlay, Util    //objects
-} from "react-openlayers";
+} from "react-ol";
 
 var key = 'mapzen-2pRGhe5';
 
-var attribution = [new ol.Attribution({
+var attribution = [new Attribution({
   html: '&copy; OpenStreetMap contributors, Who’s On First, Natural Earth, and openstreetmapdata.com'
 })];
-var format = new ol.format.TopoJSON();
-var tileGrid = ol.tilegrid.createXYZ({maxZoom: 19});
+var format = new TopoJSON();
+var tileGrid = createXYZ({maxZoom: 19});
 var roadStyleCache = {};
 var roadColor = {
   'major_road': '#776',
   'minor_road': '#ccb',
   'highway': '#f39'
 };
-var buildingStyle = new ol.style.Style({
-  fill: new ol.style.Fill({
+var buildingStyle = new Style({
+  fill: new Fill({
     color: '#666',
     opacity: 0.4
   }),
-  stroke: new ol.style.Stroke({
+  stroke: new Stroke({
     color: '#444',
     width: 1
   })
 });
 
-var source1 = new ol.source.VectorTile({
+var source1 = new VectorTile({
               projection: undefined,
               attributions: attribution,
               format: format,
               tileGrid: tileGrid,
               url: 'https://tile.mapzen.com/mapzen/vector/v1/water/{z}/{x}/{y}.topojson?api_key=' + key
             });
-var style1 = new ol.style.Style({
-              fill: new ol.style.Fill({
+var style1 = new Style({
+              fill: new Fill({
                 color: '#9db9e8'
               })
             });
-var source2 = new ol.source.VectorTile({
+var source2 = new VectorTile({
               projection: undefined,
               attributions: attribution,
               format: format,
@@ -67,8 +74,8 @@ var style2 = function(feature) {
                   color = roadColor[kind];
                   width = kind == 'highway' ? 1.5 : 1;
                 }
-                style = new ol.style.Style({
-                  stroke: new ol.style.Stroke({
+                style = new Style({
+                  stroke: new Stroke({
                     color: color,
                     width: width
                   }),
@@ -78,7 +85,7 @@ var style2 = function(feature) {
               }
               return style;
             };
-var source3 =  new ol.source.VectorTile({
+var source3 =  new VectorTile({
               projection: undefined,
               attributions: attribution,
               format: format,
@@ -98,16 +105,16 @@ export class OSMVectorTiles extends React.Component<any,any> {
   render(){
     return (
       <div>
-        <Map view={{center: ol.proj.fromLonLat([-74.0064, 40.7142]), maxZoom: 19, zoom: 15 }}>
+        <Map view={{center: fromLonLat([-74.0064, 40.7142]), maxZoom: 19, zoom: 15 }}>
           <Layers>
             <layer.VectorTilePlain source={source1} style={style1} />
             <layer.VectorTilePlain source={source2} style={style2} />
             <layer.VectorTilePlain source={source3} style={style3} />
           </Layers>
         </Map>
-        <a href="https://github.com/allenhwkim/react-openlayers/blob/master/app/layers/osm-vector-tiles.tsx">Source Code</a>
+        <a href="https://github.com/allenhwkim/react-ol/blob/master/app/layers/osm-vector-tiles.tsx">Source Code</a>
         <pre>{`
-        <Map view={{center: ol.proj.fromLonLat([-74.0064, 40.7142]), maxZoom: 19, zoom: 15 }}>
+        <Map view={{center: fromLonLat([-74.0064, 40.7142]), maxZoom: 19, zoom: 15 }}>
           <Layers>
             <layer.VectorTilePlain source={source1} style={style1} />
             <layer.VectorTilePlain source={source2} style={style2} />

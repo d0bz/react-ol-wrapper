@@ -24,15 +24,20 @@
     "outDir": "build",
     "baseUrl": "src",
     "paths": {
-      "react-ol": ["./index"]
+      "react-ol": ["./index"],
+      "ol": ["node_modules/@hanreev/types-ol/ol"],
+      "ol/*": ["node_modules/@hanreev/types-ol/ol/*"]
     }
   },
   "types": [
     "openlayers"
   ],
   "files": [
-    "src/index.tsx",
-    "node_modules/@types/openlayers/index.d.ts"
+    "src/index.tsx"
+  ],
+  "include": [
+    "src/**/*",
+    "node_modules/@types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules"

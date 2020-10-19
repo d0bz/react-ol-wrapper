@@ -11,8 +11,6 @@ import { MapView as Map } from  './map';
 import { MapView } from  './map';
 import { Overlay } from './overlay';
 import { Util } from './util';
-import * as ol from 'openlayers';
-
 
 export {
     //groups
@@ -36,6 +34,5 @@ export {
     Overlay,
 
 
-    Util,
-    ol
+    Util
 };

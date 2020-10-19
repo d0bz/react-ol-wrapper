@@ -1,82 +1,94 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map, Feature as OlFeature } from 'ol';
+import { Fill, Stroke, Circle, Style } from 'ol/style';
+import { Polygon, Point, LineString, LinearRing, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection, GeometryType } from 'ol/geom';
+import DragBox from 'ol/interaction/DragBox';
+import Draw from 'ol/interaction/Draw';
+import Modify from 'ol/interaction/Modify';
+import Select from 'ol/interaction/Select';
+import Snap from 'ol/interaction/Snap';
+import { always, never, platformModifierKeyOnly, shiftKeyOnly, singleClick } from 'ol/events/condition';
+import { boundingExtent } from 'ol/extent';
+import { equals as olEquals, squaredDistance, closestOnCircle, closestOnSegment, distance as olDistance } from 'ol/coordinate';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
+import Collection from 'ol/Collection';
+import WKT from 'ol/format/WKT';
+import GeoJSON from 'ol/format/GeoJSON';
+import { transform } from 'ol/proj';
+import { getUid } from 'ol/util';
+import { Util } from '../util';
 import { MapView } from '../map';
 import * as jsts from 'jsts';
-import  { Feature }  from '../types/Feature';
+import { Feature } from '../types/Feature';
 
-const resultStyle = new ol.style.Style({
-    stroke: new ol.style.Stroke({
+const resultStyle = new Style({
+    stroke: new Stroke({
         color: '#f00',
         width: 4
     }),
-    fill: new ol.style.Fill({
+    fill: new Fill({
         color: 'rgba(255,0,0,0)'
     })
 });
 
-const selectStyle = new ol.style.Style({
-    stroke: new ol.style.Stroke({
+const selectStyle = new Style({
+    stroke: new Stroke({
         color: '#3399cc',
         width: 1
     }),
-    fill: new ol.style.Fill({
+    fill: new Fill({
         color: 'rgba(255,255,255,0.2)'
     })
 });
 
 const lineStyle = [
-    new ol.style.Style({
-        stroke: new ol.style.Stroke({
+    new Style({
+        stroke: new Stroke({
             color: '#f00',
             width: 4
         })
     }),
-    new ol.style.Style({
-        stroke: new ol.style.Stroke({
+    new Style({
+        stroke: new Stroke({
             color: '#00ff03',
             width: 1.25
         })
     })
 ];
 
-const openlayers:any = ol;
-const olGeom:any = ol.geom;
-const olCoordinate:any = ol.coordinate;
-const olGeomGeometryType:any = olGeom.GeometryType;
-const olInteractionModify:any = ol.interaction.Modify;
-const olInteraction:any = ol.interaction;
-const olInteractionModifyEventType:any = olInteraction.ModifyEventType;
+const olInteractionModify:any = Modify;
+const olInteractionModifyEventType:any = Modify.ModifyEventType;
 
 const REQUEST_ID = "BORDER_EDIT_FEATURE_REQUEST";
 
 export class BorderEdit extends React.Component<any, any> {
 
     projection: string = "EPSG:3857";
-    interaction: ol.interaction.Draw;
-    selectInteraction: ol.interaction.Select;
-    source: ol.source.Vector;
-    layer: ol.layer.Vector;
-    resultSource: ol.source.Vector;
-    resultLayer: ol.layer.Vector;
+    interaction: Draw;
+    selectInteraction: Select;
+    source: VectorSource;
+    layer: VectorLayer;
+    resultSource: VectorSource;
+    resultLayer: VectorLayer;
     wktWriter: jsts.io.WKTWriter;
     unionGeomWithBuffer: jsts.geom.Geometry;
     dragLineEnding: boolean;
     snappedToBorder: boolean;
-    wktFormat: ol.format.WKT;
+    wktFormat: WKT;
     jtsParser: jsts.io.OL3Parser;
-    features: ol.Collection<ol.Feature>;
+    features: Collection<OlFeature>;
     unionFeature: Feature;
     lineFeature: Feature;
-    geojsonFormat: ol.format.GeoJSON;
-    modifyInteraction: ol.interaction.Modify;
-    lineLayer: ol.layer.Vector;
-    lineSource: ol.source.Vector;
+    geojsonFormat: GeoJSON;
+    modifyInteraction: Modify;
+    lineLayer: VectorLayer;
+    lineSource: VectorSource;
     geomFactory: jsts.geom.GeometryFactory;
-    dragBoxInteraction: ol.interaction.DragBox;
-    snapInteraction: ol.interaction.Snap;
-    snapFeatures: ol.Collection<ol.Feature>;
+    dragBoxInteraction: DragBox;
+    snapInteraction: Snap;
+    snapFeatures: Collection<OlFeature>;
 
 
     options: any = {};
@@ -86,25 +98,25 @@ export class BorderEdit extends React.Component<any, any> {
 
     constructor(props) {
         super(props);
-        this.features = new ol.Collection([]);
-        this.source = new ol.source.Vector({ wrapX: false, features: this.features });
-        this.resultSource = new ol.source.Vector({ wrapX: false });
-        this.lineSource = new ol.source.Vector({ wrapX: false });
-        this.snapFeatures = new ol.Collection([]);
+        this.features = new Collection([]);
+        this.source = new VectorSource({ wrapX: false, features: this.features });
+        this.resultSource = new VectorSource({ wrapX: false });
+        this.lineSource = new VectorSource({ wrapX: false });
+        this.snapFeatures = new Collection([]);
 
 
-        this.geojsonFormat = new ol.format.GeoJSON();
+        this.geojsonFormat = new GeoJSON();
 
         this.jtsParser = new jsts.io.OL3Parser();
-        this.jtsParser.inject(ol.geom.Point, ol.geom.LineString, ol.geom.LinearRing, ol.geom.Polygon, ol.geom.MultiPoint, ol.geom.MultiLineString,
-            ol.geom.MultiPolygon, ol.geom.GeometryCollection);
+        this.jtsParser.inject(Point, LineString, LinearRing, Polygon, MultiPoint, MultiLineString,
+            MultiPolygon, GeometryCollection);
 
         this.wktWriter = new jsts.io.WKTWriter();
-        this.wktFormat = new ol.format.WKT();
+        this.wktFormat = new WKT();
         this.geomFactory = new jsts.geom.GeometryFactory();
 
-        this.dragBoxInteraction = new ol.interaction.DragBox({
-            condition: ol.events.condition.platformModifierKeyOnly
+        this.dragBoxInteraction = new DragBox({
+            condition: platformModifierKeyOnly
         });
 
         this.snappedToBorder = false;
@@ -147,17 +159,17 @@ export class BorderEdit extends React.Component<any, any> {
             self.projection = self.context.mapComp.map.getView().getProjection().getCode();
         });
 
-        this.layer = new ol.layer.Vector({
+        this.layer = new VectorLayer({
             source: this.source,
             style: selectStyle
         });
 
-        this.resultLayer = new ol.layer.Vector({
+        this.resultLayer = new VectorLayer({
             source: this.resultSource,
             style: resultStyle
         });
 
-        this.lineLayer = new ol.layer.Vector({
+        this.lineLayer = new VectorLayer({
             source: this.lineSource,
             style: lineStyle
         });
@@ -249,9 +261,9 @@ export class BorderEdit extends React.Component<any, any> {
 
     }
 
-    mapOnClick(evt) {
-        const coordinate = evt.coordinate;
-        const extent = new ol.geom.Circle(coordinate, 0.01).getExtent(); // radius in meters
+    mapOnClick = (evt) => {
+        const coordinate = transform(evt.coordinate, this.projection, 'EPSG:4326');
+        const extent = Util.createExtentFromLonLat(coordinate[0], coordinate[1], 1);
         this.requestWFSFeatures(extent);
     }
 
@@ -263,7 +275,7 @@ export class BorderEdit extends React.Component<any, any> {
             geometryPropertyName: wfsLayerDescription.geometryPropertyName,
             featureType: wfsLayerDescription.featureType,
             featureNS: wfsLayerDescription.featureNS,
-            srsName: self.context.mapComp.map.getView().getProjection().getCode(),
+            srsName: 'EPSG:4326',
             bbox: extent,
             cqlFilter: wfsLayerDescription.cqlFilter
         });
@@ -508,7 +520,7 @@ export class BorderEdit extends React.Component<any, any> {
                 }
             });
 
-            this.selectInteraction = new ol.interaction.Select(options);
+            this.selectInteraction = new Select(options);
             this.selectInteraction.on("select", (e) => self.areaSelected(e));
 
             if (nextProps.wfsLayerDescription) {
@@ -537,7 +549,7 @@ export class BorderEdit extends React.Component<any, any> {
             this.context.mapComp.map.removeInteraction(this.snapInteraction);
         }
 
-        self.snapInteraction = new ol.interaction.Snap({
+        self.snapInteraction = new Snap({
             features: self.snapFeatures,
             pixelTolerance: 20
         });
@@ -547,12 +559,12 @@ export class BorderEdit extends React.Component<any, any> {
         snapInteraction.snapTo = function (pixel, pixelCoordinate, map) {
             var lowerLeft = map.getCoordinateFromPixel([pixel[0] - this.pixelTolerance_, pixel[1] + this.pixelTolerance_]);
             var upperRight = map.getCoordinateFromPixel([pixel[0] + this.pixelTolerance_, pixel[1] - this.pixelTolerance_]);
-            var box = ol.extent.boundingExtent([lowerLeft, upperRight]);
+            var box = boundingExtent([lowerLeft, upperRight]);
             var segments = this.rBush_.getInExtent(box);
             // If snapping on vertices only, don't consider circles
             if (this.vertex_ && !this.edge_) {
                 segments = segments.filter(function (segment) {
-                    return segment.feature.getGeometry().getType() !== olGeomGeometryType.CIRCLE;
+                    return segment.feature.getGeometry().getType() !== GeometryType.CIRCLE;
                 });
             }
             var snappedToVertex = false;
@@ -566,12 +578,12 @@ export class BorderEdit extends React.Component<any, any> {
                 this.pixelCoordinate_ = pixelCoordinate;
                 segments.sort(this.sortByDistance_);
                 var closestSegment = segments[0].segment;
-                var isCircle = segments[0].feature.getGeometry().getType() === olGeomGeometryType.CIRCLE;
+                var isCircle = segments[0].feature.getGeometry().getType() === GeometryType.CIRCLE;
                 if (this.vertex_ && !this.edge_) {
                     pixel1 = map.getPixelFromCoordinate(closestSegment[0]);
                     pixel2 = map.getPixelFromCoordinate(closestSegment[1]);
-                    squaredDist1 = olCoordinate.squaredDistance(pixel, pixel1);
-                    squaredDist2 = olCoordinate.squaredDistance(pixel, pixel2);
+                    squaredDist1 = squaredDistance(pixel, pixel1);
+                    squaredDist2 = squaredDistance(pixel, pixel2);
                     dist = Math.sqrt(Math.min(squaredDist1, squaredDist2));
                     snappedToVertex = dist <= this.pixelTolerance_;
                     if (snappedToVertex) {
@@ -581,19 +593,19 @@ export class BorderEdit extends React.Component<any, any> {
                     }
                 } else if (this.edge_) {
                     if (isCircle) {
-                        vertex = olCoordinate.closestOnCircle(pixelCoordinate, /** @type {ol.geom.Circle} */
+                        vertex = closestOnCircle(pixelCoordinate, /** @type {Circle} */
                             segments[0].feature.getGeometry());
                     } else {
-                        vertex = olCoordinate.closestOnSegment(pixelCoordinate, closestSegment);
+                        vertex = closestOnSegment(pixelCoordinate, closestSegment);
                     }
                     vertexPixel = map.getPixelFromCoordinate(vertex);
-                    if (olCoordinate.distance(pixel, vertexPixel) <= this.pixelTolerance_) {
+                    if (olDistance(pixel, vertexPixel) <= this.pixelTolerance_) {
                         snapped = true;
                         if (this.vertex_ && !isCircle) {
                             pixel1 = map.getPixelFromCoordinate(closestSegment[0]);
                             pixel2 = map.getPixelFromCoordinate(closestSegment[1]);
-                            squaredDist1 = olCoordinate.squaredDistance(vertexPixel, pixel1);
-                            squaredDist2 = olCoordinate.squaredDistance(vertexPixel, pixel2);
+                            squaredDist1 = squaredDistance(vertexPixel, pixel1);
+                            squaredDist2 = squaredDistance(vertexPixel, pixel2);
                             dist = Math.sqrt(Math.min(squaredDist1, squaredDist2));
                             snappedToVertex = dist <= this.pixelTolerance_;
                             if (snappedToVertex) {
@@ -627,11 +639,11 @@ export class BorderEdit extends React.Component<any, any> {
             this.context.mapComp.map.removeInteraction(this.modifyInteraction);
         }
 
-        self.modifyInteraction = new ol.interaction.Modify({
+        self.modifyInteraction = new Modify({
             source: self.lineSource,
             deleteCondition: function (event) {
-                return ol.events.condition.shiftKeyOnly(event) &&
-                    ol.events.condition.singleClick(event);
+                return shiftKeyOnly(event) &&
+                    singleClick(event);
             }
         });
 
@@ -650,18 +662,18 @@ export class BorderEdit extends React.Component<any, any> {
             var vertexFeature = this.vertexFeature_;
             if (vertexFeature) {
                 var insertVertices = [];
-                var geometry = /** @type {ol.geom.Point} */
+                var geometry = /** @type {Point} */
                     vertexFeature.getGeometry();
                 var vertex = geometry.getCoordinates();
-                var vertexExtent = ol.extent.boundingExtent([vertex]);
+                var vertexExtent = boundingExtent([vertex]);
                 var segmentDataMatches = this.rBush_.getInExtent(vertexExtent);
                 var componentSegments = {};
-                const olInteractionModify:any = ol.interaction.Modify;
+                const olInteractionModify:any = Modify;
                 segmentDataMatches.sort(olInteractionModify.compareIndexes_);
                 for (var i = 0, ii = segmentDataMatches.length; i < ii; ++i) {
                     var segmentDataMatch = segmentDataMatches[i];
                     var segment = segmentDataMatch.segment;
-                    var uid = openlayers.getUid(segmentDataMatch.feature);
+                    var uid = getUid(segmentDataMatch.feature);
                     var depth = segmentDataMatch.depth;
                     if (depth) {
                         uid += '-' + depth.join('-');
@@ -670,13 +682,13 @@ export class BorderEdit extends React.Component<any, any> {
                     if (!componentSegments[uid]) {
                         componentSegments[uid] = new Array(2);
                     }
-                    if (segmentDataMatch.geometry.getType() === olGeomGeometryType.CIRCLE && segmentDataMatch.index === olInteractionModify.MODIFY_SEGMENT_CIRCLE_CIRCUMFERENCE_INDEX) {
+                    if (segmentDataMatch.geometry.getType() === GeometryType.CIRCLE && segmentDataMatch.index === olInteractionModify.MODIFY_SEGMENT_CIRCLE_CIRCUMFERENCE_INDEX) {
                         var closestVertex = olInteractionModify.closestOnSegmentData_(pixelCoordinate, segmentDataMatch);
-                        if (olCoordinate.equals(closestVertex, vertex) && !componentSegments[uid][0]) {
+                        if (olEquals(closestVertex, vertex) && !componentSegments[uid][0]) {
                             this.dragSegments_.push([segmentDataMatch, 0]);
                             componentSegments[uid][0] = segmentDataMatch;
                         }
-                    } else if (olCoordinate.equals(segment[0], vertex) && !componentSegments[uid][0]) {
+                    } else if (olEquals(segment[0], vertex) && !componentSegments[uid][0]) {
                         this.dragSegments_.push([segmentDataMatch, 0]);
                         componentSegments[uid][0] = segmentDataMatch;
 
@@ -689,9 +701,9 @@ export class BorderEdit extends React.Component<any, any> {
                             self.dragLineEnding = true;
                         }
 
-                    } else if (olCoordinate.equals(segment[1], vertex) && !componentSegments[uid][1]) {
+                    } else if (olEquals(segment[1], vertex) && !componentSegments[uid][1]) {
                         // prevent dragging closed linestrings by the connecting node
-                        if ((segmentDataMatch.geometry.getType() === olGeomGeometryType.LINE_STRING || segmentDataMatch.geometry.getType() === olGeomGeometryType.MULTI_LINE_STRING) && componentSegments[uid][0] && componentSegments[uid][0].index === 0) {
+                        if ((segmentDataMatch.geometry.getType() === GeometryType.LINE_STRING || segmentDataMatch.geometry.getType() === GeometryType.MULTI_LINE_STRING) && componentSegments[uid][0] && componentSegments[uid][0].index === 0) {
                             continue;
                         }
                         this.dragSegments_.push([segmentDataMatch, 1]);
@@ -707,7 +719,7 @@ export class BorderEdit extends React.Component<any, any> {
                         }
 
 
-                    } else if (this.insertVertexCondition_(evt) && openlayers.getUid(segment) in this.vertexSegments_ && !componentSegments[uid][0] && !componentSegments[uid][1]) {
+                    } else if (this.insertVertexCondition_(evt) && getUid(segment) in this.vertexSegments_ && !componentSegments[uid][0] && !componentSegments[uid][1]) {
                         insertVertices.push([segmentDataMatch, vertex]);
                     }
                 }
@@ -742,16 +754,16 @@ export class BorderEdit extends React.Component<any, any> {
                 }
 
                 switch (geometry.getType()) {
-                    case olGeomGeometryType.POINT:
+                    case GeometryType.POINT:
                         coordinates = vertex;
                         segment[0] = segment[1] = vertex;
                         break;
-                    case olGeomGeometryType.MULTI_POINT:
+                    case GeometryType.MULTI_POINT:
                         coordinates = geometry.getCoordinates();
                         coordinates[segmentData.index] = vertex;
                         segment[0] = segment[1] = vertex;
                         break;
-                    case olGeomGeometryType.LINE_STRING:
+                    case GeometryType.LINE_STRING:
 
                         if ((self.dragLineEnding && self.snappedToBorder) ||
                             (
@@ -764,22 +776,22 @@ export class BorderEdit extends React.Component<any, any> {
                             segment[index] = vertex;
                         }
                         break;
-                    case olGeomGeometryType.MULTI_LINE_STRING:
+                    case GeometryType.MULTI_LINE_STRING:
                         coordinates = geometry.getCoordinates();
                         coordinates[depth[0]][segmentData.index + index] = vertex;
                         segment[index] = vertex;
                         break;
-                    case olGeomGeometryType.POLYGON:
+                    case GeometryType.POLYGON:
                         coordinates = geometry.getCoordinates();
                         coordinates[depth[0]][segmentData.index + index] = vertex;
                         segment[index] = vertex;
                         break;
-                    case olGeomGeometryType.MULTI_POLYGON:
+                    case GeometryType.MULTI_POLYGON:
                         coordinates = geometry.getCoordinates();
                         coordinates[depth[1]][depth[0]][segmentData.index + index] = vertex;
                         segment[index] = vertex;
                         break;
-                    case olGeomGeometryType.CIRCLE:
+                    case GeometryType.CIRCLE:
                         segment[0] = segment[1] = vertex;
                         if (segmentData.index === olInteractionModify.MODIFY_SEGMENT_CIRCLE_CENTER_INDEX) {
                             this.changingFeature_ = true;
@@ -787,7 +799,7 @@ export class BorderEdit extends React.Component<any, any> {
                             this.changingFeature_ = false;
                         } else { // We're dragging the circle's circumference:
                             this.changingFeature_ = true;
-                            geometry.setRadius(olCoordinate.distance(geometry.getCenter(), vertex));
+                            geometry.setRadius(olDistance(geometry.getCenter(), vertex));
                             this.changingFeature_ = false;
                         }
                         break;
@@ -853,6 +865,6 @@ export class BorderEdit extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

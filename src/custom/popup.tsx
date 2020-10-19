@@ -1,42 +1,34 @@
-import * as React from 'react'; import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-
+import * as React from 'react';
 import './popup.css';
 
 export class Popup extends React.Component<any, any> {
-  containerEl: HTMLElement;
-  contentEl: HTMLElement;
-  contentClose:HTMLElement;
+    contentClose: HTMLElement;
 
-  constructor(props) {
-    super(props);
-  }
+    constructor(props) {
+        super(props);
+    }
 
-  componentDidMount(){
-    this.contentClose.addEventListener("click",()=>{
-      this.containerEl.style.display='none';
-    });
-  }
+    componentDidMount() {
+        const { onClose } = this.props;
+        const self = this;
+        this.contentClose.addEventListener("click", () => {
+            if (onClose) {
+                onClose();
+            }
+        });
+    }
 
-  render() {
-    return (
-      <div className="olPopup" ref={el => this.containerEl = el}>
-        <a className="olPopupCloser"
-          href="javascript:void(0)"
-          ref={el => this.contentClose = el}
-        ></a>
-        <div className="olPopupContents" ref={el => this.contentEl = el}></div>
-      </div>
-    );
-  }
-
-  setContents(html) {
-    this.contentEl.innerHTML = html;
-  }
-
-  show(bottomDistance: string = '12px') {
-    this.containerEl.style.bottom = bottomDistance;
-    this.containerEl.style.display = 'block';
-  }
-
+    render() {
+        return (
+            <div className="olPopup">
+                <a className="olPopupCloser"
+                   href="javascript:void(0)"
+                   ref={el => this.contentClose = el}
+                ></a>
+                <div className="olPopupContents">
+                    {this.props.children}
+                </div>
+            </div>
+        );
+    }
 }

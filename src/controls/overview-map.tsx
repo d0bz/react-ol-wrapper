@@ -1,12 +1,14 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
+import { Map, View } from 'ol';
+import { OverviewMap as OlOverviewMap } from 'ol/control';
+import { get as getProjection } from 'ol/proj';
 import { Util } from '../util';
 import { MapView } from '../map';
 
 export class OverviewMap extends React.Component<any, any> {
 
-    control: ol.control.OverviewMap;
+    control: OlOverviewMap;
     mapReadyCallbacks: any[] = [];
     layers: any[] = [];
     addLayerOverrider: any;
@@ -51,17 +53,18 @@ export class OverviewMap extends React.Component<any, any> {
         }
     }
 
-    addControl(props){
+    addControl(props) {
         let options = Util.getOptions(Object['assign'](this.options, props));
 
         this.map = {
             addLayer: this.addLayerOverrider,
-            removeLayer: () => {},
+            removeLayer: () => {
+            },
         };
 
-        this.options.projection = options.view && options.view.projection ? ol.proj.get(options.view.projection) : this.context.mapComp.options.projection;
+        this.options.projection = options.view && options.view.projection ? getProjection(options.view.projection) : this.context.mapComp.options.projection;
 
-        if(!options.view){
+        if (!options.view) {
             options.view = {};
         }
 
@@ -69,11 +72,11 @@ export class OverviewMap extends React.Component<any, any> {
 
         this.mapReadyCallbacks.forEach((f) => f());
 
-        options.view = new ol.View(options.view);
+        options.view = new View(options.view);
 
         options.layers = this.layers;
 
-        this.control = new ol.control.OverviewMap(options);
+        this.control = new OlOverviewMap(options);
         this.context.mapComp.map.addControl(this.control);
 
         let olEvents = Util.getEvents(this.events, props);
@@ -98,9 +101,9 @@ export class OverviewMap extends React.Component<any, any> {
                 })
             }
 
-            !(options.view instanceof ol.View) && (options.view = new ol.View(options.view));
+            !(options.view instanceof View) && (options.view = new View(options.view));
 
-            this.control = new ol.control.OverviewMap(options);
+            this.control = new OlOverviewMap(options);
             this.context.mapComp.map.addControl(this.control);
 
             let olEvents = Util.getEvents(this.events, this.props);
@@ -112,7 +115,7 @@ export class OverviewMap extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 
     getChildContext(): any {

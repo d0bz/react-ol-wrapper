@@ -1,12 +1,13 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map } from 'ol';
+import { MouseWheelZoom as OlMouseWheelZoom } from 'ol/interaction';
+import { Util } from '../util';
 import { MapView } from '../map';
 
 export class MouseWheelZoom extends React.Component<any, any> {
 
-    interaction: ol.interaction.MouseWheelZoom;
+    interaction: OlMouseWheelZoom;
 
     options: any = {
         duration: undefined,
@@ -31,7 +32,7 @@ export class MouseWheelZoom extends React.Component<any, any> {
     componentDidMount() {
         let options = Util.getOptions(Object['assign'](this.options, this.props));
         console.log('options', options);
-        this.interaction = new ol.interaction.MouseWheelZoom(options);
+        this.interaction = new OlMouseWheelZoom(options);
         this.context.mapComp.interactions.push(this.interaction);
 
         let olEvents = Util.getEvents(this.events, this.props);
@@ -44,7 +45,7 @@ export class MouseWheelZoom extends React.Component<any, any> {
         if (nextProps !== this.props) {
             this.context.mapComp.map.removeInteraction(this.interaction);
             let options = Util.getOptions(Object['assign'](this.options, nextProps));
-            this.interaction = new ol.interaction.MouseWheelZoom(options);
+            this.interaction = new OlMouseWheelZoom(options);
             this.context.mapComp.map.addInteraction(this.interaction);
 
             let olEvents = Util.getEvents(this.events, this.props);
@@ -60,6 +61,6 @@ export class MouseWheelZoom extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }

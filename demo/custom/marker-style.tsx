@@ -3,7 +3,7 @@ import {
   interaction, layer, custom, control, type, //name spaces
   Interactions, Overlays, Controls,     //group
   Map, Layers, Overlay, Util    //objects
-} from "react-openlayers";
+} from "react-ol";
 
 
 let iconFeature = new type.Feature({wkt: "POINT(0 0)"});
@@ -34,7 +34,7 @@ export class MarkerStyle extends React.Component<any,any> {
         <Map>
           <Layers>
             <layer.OSM />
-            <layer.Vector 
+            <layer.Vector
               style={style2}
               features={[iconFeature]}/>
 

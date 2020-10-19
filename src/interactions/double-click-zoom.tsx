@@ -1,12 +1,13 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as ol from 'openlayers';
-import { Util } from "../util";
+import { Map } from 'ol';
+import { DoubleClickZoom as OlDoubleClickZoom } from 'ol/interaction';
+import { Util } from '../util';
 import { MapView } from '../map';
 
 export class DoubleClickZoom extends React.Component<any, any> {
 
-    interaction: ol.interaction.DoubleClickZoom;
+    interaction: OlDoubleClickZoom;
 
     options: any = {
         duration: undefined,
@@ -29,7 +30,7 @@ export class DoubleClickZoom extends React.Component<any, any> {
 
     componentDidMount() {
         let options = Util.getOptions(Object['assign'](this.options, this.props));
-        this.interaction = new ol.interaction.DoubleClickZoom(options);
+        this.interaction = new OlDoubleClickZoom(options);
         this.context.mapComp.interactions.push(this.interaction);
 
         let olEvents = Util.getEvents(this.events, this.props);
@@ -42,7 +43,7 @@ export class DoubleClickZoom extends React.Component<any, any> {
         if (nextProps !== this.props) {
             this.context.mapComp.map.removeInteraction(this.interaction);
             let options = Util.getOptions(Object['assign'](this.options, nextProps));
-            this.interaction = new ol.interaction.DoubleClickZoom(options);
+            this.interaction = new OlDoubleClickZoom(options);
             this.context.mapComp.map.addInteraction(this.interaction);
 
             let olEvents = Util.getEvents(this.events, this.props);
@@ -58,6 +59,6 @@ export class DoubleClickZoom extends React.Component<any, any> {
 
     static contextTypes: React.ValidationMap<any> = {
         mapComp: PropTypes.instanceOf(MapView),
-        map: PropTypes.instanceOf(ol.Map)
+        map: PropTypes.instanceOf(Map)
     };
 }
