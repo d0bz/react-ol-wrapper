@@ -338,10 +338,11 @@ export class Cluster extends React.Component<any, any> {
     };
 
     createStyle = (feature) => {
+        const self = this;
         if (this.props.itemStyle) {
             const itemStyle: Array<Style> = this.props.itemStyle(new Feature(feature.clone(), this.projection));
             const mapStyles: Array<OlStyle> = itemStyle.map((s) => {
-                const mapStyle: OlStyle = s.getMapStyle();
+                const mapStyle: OlStyle = s.getMapStyle(self.projection);
                 mapStyle.setGeometry(feature.getGeometry());
                 return mapStyle;
             });
@@ -379,7 +380,7 @@ export class Cluster extends React.Component<any, any> {
                 });
 
                 const mapStyles: Array<OlStyle> = clusterStyle.map((s) => {
-                    const mapStyle: OlStyle = s.getMapStyle();
+                    const mapStyle: OlStyle = s.getMapStyle(self.projection);
                     return mapStyle;
                 });
 

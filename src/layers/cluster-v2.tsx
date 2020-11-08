@@ -386,13 +386,14 @@ export class Cluster extends React.Component<any, any> {
 	}
 
 	getStyles(style) {
+		const self = this;
 		const styles = [];
 		if (style instanceof Array) {
 			style.forEach((style: Style) => {
-				styles.push(style.getMapStyle());
+				styles.push(style.getMapStyle(self.projection));
 			})
 		} else {
-			styles.push(style.getMapStyle());
+			styles.push(style.getMapStyle(self.projection));
 		}
 		return styles;
 	}

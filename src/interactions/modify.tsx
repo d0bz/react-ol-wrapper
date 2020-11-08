@@ -108,7 +108,7 @@ export class ModifyComponent extends React.Component<any, any> {
         let style: Style = modifyStyle;
 
         if (options.style) {
-            style = options.style.getMapStyle();
+            style = options.style.getMapStyle(self.projection);
         }
 
         let params = {

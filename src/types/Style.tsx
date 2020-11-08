@@ -1,4 +1,5 @@
-import { Fill, Stroke, Circle, Style as OlStyle, Icon, Text } from 'ol/style';
+import { Fill, Stroke, Circle, Style as OlStyle, Icon, Text, RegularShape } from 'ol/style';
+import Point from 'ol/geom/Point';
 import { pointerMove } from 'ol/events/condition';
 
 /**
@@ -24,6 +25,7 @@ export class Style {
 	});
 
 	cachedStyle: any;
+	projection: string = 'EPSG:4326';
 
 	fillColor: any = [0, 153, 255, 1];
 	strokeColor: any = [255, 255, 255, 0.75];
@@ -31,11 +33,19 @@ export class Style {
 	circleRadius: any;
 	imageSrc: any;
 	imageAnchor: [number, number] = [0.5, 1];
+	geometry: [number, number];
 	imageSize: [number, number];
+	imageRotateWithView: boolean;
+	imageRotation: number;
 	opacity: number = 1;
 	scale: number = 1;
 	text: string;
 	textSize: number = 10;
+	arrowStyle: {
+		coordinates: [],
+		radius: number,
+		rotation: number,
+	} = null;
 
 	constructor(properties?: any) {
 		if (properties) {
@@ -45,10 +55,14 @@ export class Style {
 			this.setCircleRadius(properties.circleRadius);
 			this.setImageSrc(properties.imageSrc);
 			this.setImageSize(properties.imageSize);
+			this.setImageRotateWithView(properties.imageRotateWithView);
+			this.setImageRotation(properties.imageRotation);
+			this.setImageGeometry(properties.geometry);
 			this.setOpacity(properties.opacity || this.opacity);
 			this.setScale(properties.scale || this.scale);
 			this.setImageAnchor(properties.imageAnchor || this.imageAnchor);
 			this.setText(properties.text, properties.textSize);
+			this.setArrowStyle(properties.arrowStyle);
 		}
 	}
 
@@ -112,6 +126,38 @@ export class Style {
 		}
 	}
 
+	setImageRotation(rotation: number): void {
+		if (rotation) {
+			this.imageRotation = rotation;
+		}
+	}
+
+	setImageGeometry(geometry: [number, number]): void {
+		if (geometry) {
+			this.geometry = geometry;
+		}
+	}
+
+	setImageRotateWithView(rotate: boolean): void {
+		if (rotate) {
+			this.imageRotateWithView = rotate;
+		}
+	}
+
+	setArrowStyle(arrowStyle: any): void {
+		if (arrowStyle) {
+			this.arrowStyle = arrowStyle;
+		}
+	}
+
+	getImageRotateWithView(): boolean | null {
+		return this.imageRotateWithView;
+	}
+
+	getImageRotation(): number | null {
+		return this.imageRotation;
+	}
+
 	getImageAnchor(): any | null {
 		return this.imageAnchor;
 	}
@@ -127,12 +173,40 @@ export class Style {
 		}
 	}
 
-	getMapStyle(): OlStyle {
+	getMapStyle(projection?: string): OlStyle {
 		if (this.cachedStyle) {
 			return this.cachedStyle;
 		}
 
-		if (this.imageSrc) {
+		if (this.arrowStyle) {
+			const point = new Point(this.arrowStyle.coordinates);
+			if (projection && this.projection !== projection) {
+				point.transform(this.projection, projection);
+			}
+
+			return new OlStyle({
+				geometry: point,
+				image: new RegularShape({
+					fill: new Fill({color: this.fillColor}),
+					points: 3,
+					radius: this.arrowStyle.radius,
+					stroke: new Stroke({
+						color: this.strokeColor
+					}),
+					rotateWithView: false,
+					rotation: -this.arrowStyle.rotation + (Math.PI / 2)
+				})
+			});
+		} else if (this.imageSrc) {
+			if (this.geometry) {
+				const point = new Point(this.geometry).clone();
+				point.transform(this.projection, 'EPSG:3857');
+				if (projection && this.projection !== projection) {
+					point.transform(this.projection, projection);
+				}
+				this.defaultStyle.setGeometry(point);
+			}
+
 			this.defaultStyle.setImage(
 				new Icon(/** @type {module:ol/style/Icon~Options} */ ({
 					anchor: this.imageAnchor,
@@ -141,7 +215,9 @@ export class Style {
 					src: this.imageSrc,
 					size: this.imageSize,
 					opacity: this.opacity,
-					scale: this.scale
+					scale: this.scale,
+					rotateWithView: this.imageRotateWithView,
+					rotation: this.imageRotation,
 				})));
 
 			this.cachedStyle = this.defaultStyle;

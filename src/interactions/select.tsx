@@ -145,9 +145,8 @@ export class Select extends React.Component<any, any> {
 	componentDidMount() {
 		const self = this;
 
-
 		if (this.props.style) {
-			this.selectedStyle = this.props.style.getMapStyle();
+			this.selectedStyle = this.props.style.getMapStyle(self.projection);
 		}
 
 		this.layer = new VectorLayer({
@@ -353,7 +352,7 @@ export class Select extends React.Component<any, any> {
 
 		if (options.layers) {
 			if (nextProps.style) {
-				options.style = nextProps.style.getMapStyle();
+				options.style = nextProps.style.getMapStyle(self.projection);
 			}
 
 			this.interaction = new OlSelect(options);
