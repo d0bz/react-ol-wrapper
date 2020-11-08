@@ -104,7 +104,7 @@ export class Vector extends React.Component<any, any> {
 						<layer.Vector features={this.state.features} zIndex="3" />
 						{/*<layer.Vector features={this.state.estoniaFeatures} style={styleEstonia} zIndex="3"/>*/}
 						{/*<layer.Vector features={this.state.estoniaFeatures} style={this.styleEstoniaFunction} zIndex="3" />*/}
-						<layer.Vector features={this.state.estoniaLineString} style={this.styleLinestringWithArrowsStyleFunction} zIndex="4" />
+						<layer.Vector features={this.state.estoniaLineString} style={this.styleLinestringWithArrowsFunction} zIndex="4" />
 					</Layers>
 				</Map>
 				<pre>{`

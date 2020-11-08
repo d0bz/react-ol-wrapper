@@ -199,8 +199,7 @@ export class Style {
 			});
 		} else if (this.imageSrc) {
 			if (this.geometry) {
-				const point = new Point(this.geometry).clone();
-				point.transform(this.projection, 'EPSG:3857');
+				const point = new Point(this.geometry);
 				if (projection && this.projection !== projection) {
 					point.transform(this.projection, projection);
 				}

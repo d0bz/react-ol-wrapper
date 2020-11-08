@@ -1,6 +1,6 @@
 {
 	"name": "react-ol-wrapper",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"private": false,
 	"main": "build/index.js",
 	"scripts": {
@@ -10,7 +10,8 @@
 		"build": "webpack",
 		"doc": "npx styleguidist server",
 		"build-doc": "npx styleguidist build",
-		"demo": "cross-env NODE_ENV=dev webpack-dev-server --quiet --port 9001 --content-base demo --config demo/webpack.config"
+		"demo": "cross-env NODE_ENV=dev webpack-dev-server --quiet --port 9001 --content-base demo --config demo/webpack.config",
+		"release": "npm version patch && npm run build && npm run publish"
 	},
 	"devDependencies": {
 		"@hanreev/types-ol": "^3.0.0",
