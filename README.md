@@ -50,3 +50,10 @@ Example
 
     $ npm install
     $ npm run demo
+
+### Publishing version
+
+    $ npm config set registry https://registry.npmjs.org/
+    $ npm login
+    $ npm version patch
+    $ npm publish
