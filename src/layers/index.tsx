@@ -9,6 +9,7 @@ import {VectorTile} from './vector-tile';
 import {VectorTilePlain} from './vector-tile-plain';
 import {WmsTile} from './wms-tile';
 import {OSM} from './osm';
+import {Google} from './google';
 
 let layer = {
   Tile: Tile,
@@ -21,6 +22,7 @@ let layer = {
   VectorTilePlain: VectorTilePlain,
   WmsTile: WmsTile,
   OSM: OSM,
+  Google: Google,
 };
 
 export {

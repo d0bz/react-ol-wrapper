@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Link } from 'react-router';
 
 export { Tile } from './tile';
+export { Google } from './google';
 export { TileOsm } from './tile-osm';
 export { WmsTile } from './wms-tile';
 export { Vector } from './vector';
@@ -23,6 +24,7 @@ export class Layers extends React.Component<any, any> {
                 <h1>Controls</h1>
                 <ul role="nav" className="group-menu">
                     <li><Link to="layers/tile">Tile</Link></li>
+                    <li><Link to="layers/Google">Google</Link></li>
                     <li><Link to="layers/tileosm">TileOsm</Link></li>
                     <li><Link to="layers/wms-tile">WMS</Link></li>
                     <li><Link to="layers/vector">Vector</Link></li>

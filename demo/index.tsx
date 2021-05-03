@@ -3,7 +3,7 @@ import * as ReactDOM from 'react-dom';
 import { Router, Route, hashHistory, IndexRoute, IndexRedirect } from 'react-router';
 import { App } from './app';
 import { Controls, Attribution, FullScreen, MousePosition, OverviewMap, Rotate, ScaleLine, ZoomSlider, ZoomToExtent, Zoom } from './controls';
-import { Layers, Tile, TileOsm, WmsTile, Vector, Heatmap, Image, VectorTile, VectorTile2, VectorTile3, OSMVectorTiles, Cluster } from './layers';
+import { Google, Layers, Tile, TileOsm, WmsTile, Vector, Heatmap, Image, VectorTile, VectorTile2, VectorTile3, OSMVectorTiles, Cluster } from './layers';
 import {
     Interactions,
     Select,
@@ -47,6 +47,7 @@ ReactDOM.render((
             <Route path="layers" component={Layers}>
                 <IndexRoute component={Tile} />
                 <Route path="tile" component={Tile} />
+                <Route path="google" component={Google} />
                 <Route path="tileosm" component={TileOsm} />
                 <Route path="wms-tile" component={WmsTile} />
                 <Route path="vector" component={Vector} />
