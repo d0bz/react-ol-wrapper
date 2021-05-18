@@ -99,7 +99,9 @@ export class Google extends React.Component<any, any> {
 			layerUrl = this.layerUrls[props.type];
 		}
 
-		let source = new TileImage({ url: layerUrl });
+		const properties = props.properties;
+
+		let source = new TileImage({ url: layerUrl, attributions: properties && properties.attributions || null });
 		options.source = source;
 		self.layer = new Tile(options);
 		if (props.zIndex) {

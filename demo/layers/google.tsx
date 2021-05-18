@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { layer, Layers, Map } from 'react-ol';
+import { control, Controls, layer, Layers, Map } from 'react-ol';
 
 export class Google extends React.Component<any, any> {
 	constructor(props) {
@@ -15,8 +15,11 @@ export class Google extends React.Component<any, any> {
 					 extent={[22.883216612644446, 57.80457411797305, 27.750159972019446, 59.685116344414965]}
 				>
 					<Layers>
-						<layer.Google type='satellite' />
+						<layer.Google type='satellite' properties={{ attributions: 'Google maps' }} />
 					</Layers>
+					<Controls attribution={true} zoom={true}>
+						<control.Attribution collapsible={false} collapsed={false}/>
+					</Controls>
 				</Map>
 				<pre>{`
         <Map view={{
@@ -25,10 +28,12 @@ export class Google extends React.Component<any, any> {
                      extent={[22.883216612644446, 57.80457411797305, 27.750159972019446, 59.685116344414965]}
                 >
           <Layers>
-                <Layers>
-                    <layer.Google type='satellite' />
-                </Layers>
-          </Layers>
+			<layer.Google type='satellite' />
+		   </Layers>
+          
+	      <Controls attribution={true} zoom={true}>
+		      <control.Attribution collapsible={false} collapsed={false}/>
+		  </Controls>
         </Map>
         `}</pre>
 			</div>
